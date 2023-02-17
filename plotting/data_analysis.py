@@ -17,12 +17,14 @@ def plot_stance_analysis(df, labels_columns):
     bar_width = 0.35
     bar_positions1 = np.arange(len(sums_favor))
     bar_positions2 = [p + bar_width for p in bar_positions1]
+    
+    labels = ['in favor of', 'against']
 
     # plot the bar chart for df1
-    barlist_favor = ax.bar(bar_positions1, sums_favor.values, bar_width, label='in favor of')
+    barlist_favor = ax.bar(bar_positions1, sums_favor.values, bar_width, label=labels[0])
 
     # plot the bar chart for df2
-    barlist_against = ax.bar(bar_positions2, sums_against.values, bar_width, label='against')
+    barlist_against = ax.bar(bar_positions2, sums_against.values, bar_width, label=labels[1])
 
     for i, bar in enumerate(zip(barlist_favor, barlist_against)):
         if barlist_favor[i].get_height() > barlist_against[i].get_height():
