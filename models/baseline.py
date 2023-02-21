@@ -3,7 +3,7 @@ from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_
 import torch.nn as nn
 
 class BertBaselineClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels):
+    def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
