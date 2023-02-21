@@ -56,24 +56,24 @@ class BertBaselineClassifier(pl.LightningModule):
         )
 
         # verificare che cos'è il pooled output (in realtà conviene verificare che cos'è tutto l'output)
-        pooled_output = outputs[1]
+        #pooled_output = outputs[1]
 
-        pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output)
-        output = torch.sigmoid(logits) 
+        #pooled_output = self.dropout(pooled_output)
+        output = self.classifier(outputs.pooler_output)
+        output = torch.sigmoid(output) 
 
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
-
+        #outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+        loss = 0
         if labels is not None:
             if self.num_labels == 1:
                 #  We are doing regression
                 loss_fn = nn.MSELoss()
-                loss = loss_fn(logits.view(-1), labels.view(-1))
+                #loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
-                loss = self.loss_fn(logits, labels)
-            outputs = (loss,) + outputs
+                loss = self.loss_fn(output, labels)
+            #outputs = (loss,) + outputs
 
-        return outputs, output  # (loss), output, (hidden_states), (attentions)
+        return loss, output  # (loss), output, (hidden_states), (attentions)
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
