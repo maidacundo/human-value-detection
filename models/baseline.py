@@ -1,3 +1,4 @@
+import torch
 import pytorch_lightning as pl
 from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
@@ -20,7 +21,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        self.loss_fn = nn.BCELoss()
 
         # self.init_weights() # https://pytorch.org/docs/stable/nn.init.html
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
@@ -59,45 +60,53 @@ class BertBaselineClassifier(pl.LightningModule):
 
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
+        output = torch.sigmoid(logits) 
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
-
+        loss = 0
         if labels is not None:
             if self.num_labels == 1:
                 #  We are doing regression
                 loss_fn = nn.MSELoss()
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
-                loss = self.loss_fn(logits, labels)
+                loss = self.loss_fn(output, labels)
             outputs = (loss,) + outputs
 
-        return outputs  # (loss), logits, (hidden_states), (attentions)
+        return outputs, output  # (loss), output, (hidden_states), (attentions)
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        loss, outputs = self(input_ids, attention_mask, labels=labels)
-        self.log("train_loss", loss, prog_bar=True, logger=True)
+        outputs, _ = self(input_ids, attention_mask, labels=labels)
+        self.log("train_loss", outputs[0], prog_bar=True, logger=True)
         
-        self.losses.append(loss)
-        return {"loss": loss, "predictions": outputs, "labels": labels}
+        self.losses.append(outputs[0])
+        return {"loss": outputs[0], "predictions": outputs, "labels": labels}
 
     def validation_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        loss, outputs = self(input_ids, attention_mask, labels=labels)
-        self.log("val_loss", loss, prog_bar=True, logger=True)
-        return loss
+        outputs, _ = self(input_ids, attention_mask, labels=labels)
+        self.log("val_loss", outputs[0], prog_bar=True, logger=True)
+        return outputs[0]
 
     def test_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        loss, outputs = self(input_ids, attention_mask, labels=labels)
-        self.log("test_loss", loss, prog_bar=True, logger=True)
-        return loss
+        outputs, _ = self(input_ids, attention_mask, labels=labels)
+        self.log("test_loss", outputs[0], prog_bar=True, logger=True)
+        return outputs[0]
+    
+    def predict_step(self, batch, batch_idx):
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        labels = batch["labels"]
+        _, predictions = self(input_ids, attention_mask, labels=labels)
+        return predictions
 
     def configure_optimizers(self):
 
