@@ -1,10 +1,13 @@
 import pytorch_lightning as pl
 from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
+import torchmetrics
 
 class BertBaselineClassifier(pl.LightningModule):
     def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
+
+
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
         self.config.num_labels = num_labels
@@ -23,6 +26,9 @@ class BertBaselineClassifier(pl.LightningModule):
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
         if isinstance(self.classifier, nn.Linear) and self.classifier.bias is not None:
             self.classifier.bias.data.zero_()
+
+        self.losses = []
+        self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
 
     def forward(
         self,
@@ -73,6 +79,8 @@ class BertBaselineClassifier(pl.LightningModule):
         labels = batch["labels"]
         loss, outputs = self(input_ids, attention_mask, labels=labels)
         self.log("train_loss", loss, prog_bar=True, logger=True)
+        
+        self.losses.append(loss)
         return {"loss": loss, "predictions": outputs, "labels": labels}
 
     def validation_step(self, batch, batch_idx):
