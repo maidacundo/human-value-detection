@@ -8,6 +8,8 @@ class BertBaselineClassifier(pl.LightningModule):
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
         self.config.num_labels = num_labels
+        self.n_training_steps = n_training_steps
+        self.n_warmup_steps = n_warmup_steps
         # configuration.hidden_dropout_prob = 0.5
         # configuration.attention_probs_dropout_prob = 0.5
 
