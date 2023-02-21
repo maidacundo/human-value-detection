@@ -62,7 +62,7 @@ class BertBaselineClassifier(pl.LightningModule):
         logits = self.classifier(pooled_output)
         output = torch.sigmoid(logits) 
 
-        outputs = (output,) + outputs[2:]  # add hidden states and attention if they are here
+        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
 
         if labels is not None:
             if self.num_labels == 1:
@@ -73,7 +73,7 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss = self.loss_fn(logits, labels)
             outputs = (loss,) + outputs
 
-        return outputs  # (loss), output, (hidden_states), (attentions)
+        return outputs, output  # (loss), output, (hidden_states), (attentions)
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
@@ -106,7 +106,7 @@ class BertBaselineClassifier(pl.LightningModule):
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
         outputs = self(input_ids, attention_mask, labels=labels)
-        return outputs[1]
+        return outputs
 
     def configure_optimizers(self):
 
