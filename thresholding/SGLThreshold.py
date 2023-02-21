@@ -118,7 +118,6 @@ def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs:
         
     #     scheduler.step()
         
-        model.step()
         # THRESHmodel.clamp()
         losses.append(loss)
         
