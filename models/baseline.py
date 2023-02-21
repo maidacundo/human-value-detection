@@ -1,3 +1,4 @@
+import torch
 import pytorch_lightning as pl
 from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
@@ -59,7 +60,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
-        output = nn.sigmoid(logits) 
+        output = torch.sigmoid(logits) 
 
         outputs = (output,) + outputs[2:]  # add hidden states and attention if they are here
 
