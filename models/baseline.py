@@ -20,7 +20,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
-        self.loss_fn = nn.BCEWithLogitsLoss()
+        self.loss_fn = nn.BCELoss()
 
         # self.init_weights() # https://pytorch.org/docs/stable/nn.init.html
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
@@ -59,8 +59,9 @@ class BertBaselineClassifier(pl.LightningModule):
 
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
+        output = nn.sigmoid(logits) 
 
-        outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
+        outputs = (output,) + outputs[2:]  # add hidden states and attention if they are here
 
         if labels is not None:
             if self.num_labels == 1:
@@ -71,7 +72,7 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss = self.loss_fn(logits, labels)
             outputs = (loss,) + outputs
 
-        return outputs  # (loss), logits, (hidden_states), (attentions)
+        return outputs  # (loss), output, (hidden_states), (attentions)
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
