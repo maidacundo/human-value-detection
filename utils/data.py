@@ -52,7 +52,7 @@ class HumanValuesDataset(Dataset):
       labels=torch.FloatTensor(labels)
     )
 
-class ToxicCommentDataModule(pl.LightningDataModule):
+class HumanValuesDataModule(pl.LightningDataModule):
 
   def __init__(self, train_df, val_df, test_df, tokenizer, batch_size=8, max_token_len=128):
     super().__init__()
