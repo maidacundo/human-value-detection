@@ -4,13 +4,12 @@ from transformers import BertTokenizerFast as BertTokenizer
 import torch
 import pytorch_lightning as pl
 import multiprocessing
-import numpy as np
 
 def get_processed_df(input_df, labels_columns, tokenizer_sep_token):
     df = pd.DataFrame()
 
     df['arguments'] = input_df['Conclusion'] + tokenizer_sep_token + input_df['Stance'] + tokenizer_sep_token + input_df['Premise']
-    df['labels'] = np.array(input_df[labels_columns].values.tolist())
+    df['labels'] = input_df[labels_columns].values.tolist()
 
     return df
 
