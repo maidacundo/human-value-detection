@@ -105,7 +105,7 @@ class BertBaselineClassifier(pl.LightningModule):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        outputs = self(input_ids, attention_mask, labels=labels)
+        _, outputs = self(input_ids, attention_mask, labels=labels)
         return outputs
 
     def configure_optimizers(self):
