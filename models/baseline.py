@@ -98,7 +98,14 @@ class BertBaselineClassifier(pl.LightningModule):
         loss, outputs = self(input_ids, attention_mask, labels=labels)
         self.log("test_loss", loss, prog_bar=True, logger=True)
         return loss
-
+    
+    def predict_step(self, batch, batch_idx):
+        input_ids = batch["input_ids"]
+        attention_mask = batch["attention_mask"]
+        labels = batch["labels"]
+        _, outputs = self(input_ids, attention_mask, labels=labels)
+        return outputs
+        
     def configure_optimizers(self):
 
         optimizer = AdamW(self.parameters(), lr=2e-5)
