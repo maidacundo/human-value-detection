@@ -5,7 +5,6 @@ import matplotlib.pyplot as plt
 
 def plot_stance_analysis(df, labels_columns):
     df_tmp = df[labels_columns].loc[df['Stance'] == 'against'] 
-    df_tmp = df_tmp.drop('Argument ID', axis=1)
     sums_favor = df_tmp.sum().astype(float)
 
     df_tmp = df[labels_columns].loc[df['Stance'] != 'against'] 
