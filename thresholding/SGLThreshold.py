@@ -49,9 +49,11 @@ class ThresholdModel(nn.Module):
     
     def forward(self, x):
         if self.use_dense:
+            print('dense')
             out = self.dense(x.to(self.device, dtype=torch.float))
+            print('fatto dense')
             out = torch.sigmoid(out.to(self.device, dtype=torch.float))
-            print('fatto')
+            print('sigmoid')
             out = self.threshold_fn(out.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
                                     self.sigma.to(self.device, dtype=torch.float))
         else:
