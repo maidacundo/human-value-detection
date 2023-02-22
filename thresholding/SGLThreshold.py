@@ -33,20 +33,24 @@ threshold_fn = SurrogateHeaviside.apply
 
 
 class ThresholdModel(nn.Module):
-    def __init__(self, threshold_fn, device, t=0.5, sigma=100., num_labels=10):
+    def __init__(self, threshold_fn, device, t=0.5, sigma=100., num_labels=10, use_dense=False):
         super(ThresholdModel, self).__init__()
         
         # define num_labels seuils differents, initialisés à 0.5
 
-#         self.dense = torch.nn.Linear(10, 10)
+        self.dense = torch.nn.Linear(10, 10)
 
         self.thresh = torch.nn.Parameter(t*torch.ones(num_labels), requires_grad=True)
         self.sigma = torch.nn.Parameter(sigma*torch.ones(num_labels), requires_grad=True)
         self.threshold_fn = threshold_fn
         self.device = device
+        self.use_dense = use_dense
         
     
     def forward(self, x):
+        if self.use_dense:
+            x = self.dense(x.to(self.device, dtype=torch.float))
+            x = torch.sigmoid(x)
         out = self.threshold_fn(x.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
                                 self.sigma.to(self.device, dtype=torch.float))
 #         out = out.clamp_(min=0.01, max=0.99)
@@ -116,7 +120,6 @@ def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs:
         PREC_learned_AT_thresholds = learned_AT_thresholds
         if verbose:
             print ('Epoch [{}], Loss: {:.4f}'.format(epoch+1, loss))
-        if epoch % 10 == 0: print('threshs:', learned_AT_thresholds)
         # if torch.sum(delta_thresh) < 0.01: break
     print('-'*20)
     plt.figure()
