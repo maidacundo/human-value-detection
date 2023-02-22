@@ -5,7 +5,7 @@ import torch.nn as nn
 import torchmetrics
 
 class BertBaselineClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None):
+    def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None, lr=2e-5, dropout=.1):
         super().__init__()
 
 
@@ -14,11 +14,9 @@ class BertBaselineClassifier(pl.LightningModule):
         self.config.num_labels = num_labels
         self.n_training_steps = n_training_steps
         self.n_warmup_steps = n_warmup_steps
-        # configuration.hidden_dropout_prob = 0.5
-        # configuration.attention_probs_dropout_prob = 0.5
 
         self.bert = BertModel.from_pretrained(model_name)
-        self.dropout = nn.Dropout(self.config.hidden_dropout_prob)
+        self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
         self.loss_fn = nn.BCELoss()
@@ -30,6 +28,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
         self.losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
+        self.lr = lr
 
     def forward(
         self,
@@ -110,7 +109,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = AdamW(self.parameters(), lr=2e-5)
+        optimizer = AdamW(self.parameters(), lr=self.lr)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
