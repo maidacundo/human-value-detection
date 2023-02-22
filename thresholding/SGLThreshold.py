@@ -91,11 +91,11 @@ def F1_loss_objective(binarized_output, y_true):
     return - f1.mean()
 
 
-def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs: int, criterion, num_labels: int, lr=0.00001, verbose=True, device='cuda'):
-    
-    predictions=torch.tensor(predictions, dtype=torch.float).to(device)
-    labels=torch.tensor(labels, dtype=torch.float).to(device)
-    model.to(device)
+def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs: int, criterion, num_labels: int, lr=0.00001, verbose=True):
+
+    predictions=torch.tensor(predictions, dtype=torch.float).to(model.device)
+    labels=torch.tensor(labels, dtype=torch.float).to(model.device)
+    model.to(model.device)
     
     cumul_delta_thresh = torch.zeros(num_labels,)
     delta_thresh = torch.zeros(num_labels,)
