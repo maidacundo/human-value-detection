@@ -51,6 +51,7 @@ class ThresholdModel(nn.Module):
         if self.use_dense:
             x = self.dense(x.to(self.device, dtype=torch.float))
             x = torch.sigmoid(x.to(self.device, dtype=torch.float))
+            print('fatto')
         out = self.threshold_fn(x.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
                                 self.sigma.to(self.device, dtype=torch.float))
 #         out = out.clamp_(min=0.01, max=0.99)
