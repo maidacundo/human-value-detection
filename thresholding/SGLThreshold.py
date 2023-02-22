@@ -49,11 +49,8 @@ class ThresholdModel(nn.Module):
     
     def forward(self, x):
         if self.use_dense:
-            print('dense')
             out = self.dense(x.to(self.device, dtype=torch.float))
-            print('fatto dense')
             out = torch.sigmoid(out.to(self.device, dtype=torch.float))
-            print('sigmoid')
             out = self.threshold_fn(out.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
                                     self.sigma.to(self.device, dtype=torch.float))
         else:
@@ -94,10 +91,15 @@ def F1_loss_objective(binarized_output, y_true):
     return - f1.mean()
 
 
-def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs: int, criterion, num_labels: int, lr=0.00001, verbose=True):
+def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs: int, criterion, num_labels: int, lr=0.00001, verbose=True, device='cuda'):
+    
+    predictions=torch.tensor(predictions, dtype=torch.float).to(device)
+    labels=torch.tensor(labels, dtype=torch.float).to(device)
+    model.to(device)
+    
     cumul_delta_thresh = torch.zeros(num_labels,)
     delta_thresh = torch.zeros(num_labels,)
-
+    
     for el in model.parameters():
         PREC_learned_AT_thresholds = el.clone().detach().cpu()
 
