@@ -72,8 +72,8 @@ def F1_loss_objective(binarized_output, y_true):
     # let's first convert binary vector prob into logits
 #     prob = torch.clamp(prob, 1.e-12, 0.9999999)
     
-#     average = 'macro'
-    average = 'micro'
+    average = 'macro'
+    # average = 'micro'
     epsilon = torch.tensor(1e-12)
     
     if average == 'micro':

@@ -27,6 +27,7 @@ class BertBaselineClassifier(pl.LightningModule):
             self.classifier.bias.data.zero_()
 
         self.losses = []
+        self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
         self.lr = lr
 
@@ -90,6 +91,7 @@ class BertBaselineClassifier(pl.LightningModule):
         labels = batch["labels"]
         outputs, _ = self(input_ids, attention_mask, labels=labels)
         self.log("val_loss", outputs[0], prog_bar=True, logger=True)
+        self.val_losses.append(outputs[0])
         return outputs[0]
 
     def test_step(self, batch, batch_idx):
