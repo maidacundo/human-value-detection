@@ -38,7 +38,7 @@ class ThresholdModel(nn.Module):
         
         # define num_labels seuils differents, initialisés à 0.5
 
-        self.dense = torch.nn.Linear(10, 10)
+        self.dense = torch.nn.Linear(num_labels, num_labels)
 
         self.thresh = torch.nn.Parameter(t*torch.ones(num_labels), requires_grad=True)
         self.sigma = torch.nn.Parameter(sigma*torch.ones(num_labels), requires_grad=True)
@@ -49,10 +49,13 @@ class ThresholdModel(nn.Module):
     
     def forward(self, x):
         if self.use_dense:
-            x = self.dense(x.to(self.device, dtype=torch.float))
-            x = torch.sigmoid(x.to(self.device, dtype=torch.float))
+            out = self.dense(x.to(self.device, dtype=torch.float))
+            out = torch.sigmoid(out.to(self.device, dtype=torch.float))
             print('fatto')
-        out = self.threshold_fn(x.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
+            out = self.threshold_fn(out.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
+                                    self.sigma.to(self.device, dtype=torch.float))
+        else:
+            out = self.threshold_fn(x.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
                                 self.sigma.to(self.device, dtype=torch.float))
 #         out = out.clamp_(min=0.01, max=0.99)
         # out = self.dense(x.to(device, dtype=torch.float))
