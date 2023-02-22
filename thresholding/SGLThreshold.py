@@ -84,49 +84,29 @@ def F1_loss_objective(binarized_output, y_true):
     return - f1.mean()
 
 
-def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs: int, criterion, num_labels: int):
+def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs: int, criterion, num_labels: int, lr=0.00001, verbose=True):
     cumul_delta_thresh = torch.zeros(num_labels,)
     delta_thresh = torch.zeros(num_labels,)
 
     for el in model.parameters():
         PREC_learned_AT_thresholds = el.clone().detach().cpu()
 
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+
     losses = []
     for epoch in range(epochs):
-        
-        start_time = time.time()
-        
+                
         model.train()
-        
-        # Forward pass
-        # inputs:  predictions_tensor
-    #     outputs = THRESHmodel(pth_train_probs)
+        optimizer.zero_grad()
+
         outputs = model(predictions)
-        
-    #     if epoch % 10 == 0:
-    #         print(outputs[-1])
-    #     loss = criterion(outputs, pth_train_gt)
         loss = criterion(outputs, labels)
-
-        # Backward and optimize
-        model.zero_grad()
-
         loss.backward()
-    #     loss.mean().backward()
-    #         loss.backward(at_batch_y)
-        # loss.backward(torch.ones_like(loss))
-        
-    #     scheduler.step()
-        
-        # THRESHmodel.clamp()
+        optimizer.step()
+
         losses.append(loss)
         
-        total_time = time.time() - start_time
-
-    #     print ('Epoch [{}/{}], Loss: {:.4f}, Duration: {:.1f} s' 
-    #            .format(epoch+1, num_epochs, loss.mean(), duree_epoch))
-        print ('Epoch [{}/{}], Loss: {:.4f}, Duration: {:.1f} s' 
-            .format(epoch+1, start_time, loss, total_time))
+        
 
         for el in model.parameters():
             learned_AT_thresholds = el.clone().detach().cpu()
@@ -134,12 +114,11 @@ def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs:
         delta_thresh = learned_AT_thresholds - PREC_learned_AT_thresholds
         cumul_delta_thresh += delta_thresh
         PREC_learned_AT_thresholds = learned_AT_thresholds
+        if verbose:
+            print ('Epoch [{}], Loss: {:.4f}'.format(epoch+1, loss))
         if epoch % 10 == 0: print('threshs:', learned_AT_thresholds)
         # if torch.sum(delta_thresh) < 0.01: break
-    print('-'*20)        
-    print('delta:', cumul_delta_thresh)
-    print('threshs:', learned_AT_thresholds)
+    print('-'*20)
     plt.figure()
     # plt.figure(figsize=(8,6))
-    plt.plot(losses)
-    return learned_AT_thresholds
+    plt.plot([loss.detach().cpu() for loss in losses])
