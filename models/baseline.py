@@ -19,7 +19,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
-        self.loss_fn = nn.BCELoss()
+        self.loss_fn = nn.BCEWithLogitsLoss()
 
         # self.init_weights() # https://pytorch.org/docs/stable/nn.init.html
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
@@ -60,7 +60,6 @@ class BertBaselineClassifier(pl.LightningModule):
 
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
-        output = torch.sigmoid(logits) 
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         loss = 0
@@ -70,44 +69,44 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss_fn = nn.MSELoss()
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
-                loss = self.loss_fn(output, labels)
+                loss = self.loss_fn(logits, labels)
             outputs = (loss,) + outputs
 
-        return outputs, output  # (loss), output, (hidden_states), (attentions)
+        return outputs  # (loss), output, (hidden_states), (attentions)
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        outputs, _ = self(input_ids, attention_mask, labels=labels)
-        self.log("train_loss", outputs[0], prog_bar=True, logger=True)
+        loss, output = self(input_ids, attention_mask, labels=labels)
+        self.log("train_loss", loss, prog_bar=True, logger=True)
         
-        self.losses.append(outputs[0])
-        return {"loss": outputs[0], "predictions": outputs, "labels": labels}
+        self.losses.append(loss)
+        return {"loss": loss, "predictions": output, "labels": labels}
 
     def validation_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        outputs, _ = self(input_ids, attention_mask, labels=labels)
-        self.log("val_loss", outputs[0], prog_bar=True, logger=True)
-        self.val_losses.append(outputs[0])
-        return outputs[0]
+        loss, output = self(input_ids, attention_mask, labels=labels)
+        self.log("val_loss", loss, prog_bar=True, logger=True)
+        self.val_losses.append(loss)
+        return loss
 
     def test_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        outputs, _ = self(input_ids, attention_mask, labels=labels)
-        self.log("test_loss", outputs[0], prog_bar=True, logger=True)
-        return outputs[0]
+        loss, output = self(input_ids, attention_mask, labels=labels)
+        self.log("test_loss", loss, prog_bar=True, logger=True)
+        return loss
     
     def predict_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        _, predictions = self(input_ids, attention_mask, labels=labels)
-        return predictions
+        loss, output = self(input_ids, attention_mask, labels=labels)
+        return torch.sigmoid(output)
 
     def configure_optimizers(self):
 
