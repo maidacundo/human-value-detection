@@ -3,6 +3,7 @@ import pytorch_lightning as pl
 from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
 import torchmetrics
+import torch.nn.functional as F
 
 class BertClassifierPooling(pl.LightningModule):
     def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None, lr=2e-5, classifier_dropout=.1):
@@ -19,6 +20,11 @@ class BertClassifierPooling(pl.LightningModule):
         self.bert = BertModel.from_pretrained(model_name)
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
+
+        self.lstm = nn.LSTM(self.config.hidden_size, self.config.hidden_size, batch_first=True, bidirectional=False)
+        self.avg_pooling = nn.AdaptiveAvgPool1d(1)
+        self.max_pooling = nn.AdaptiveMaxPool1d(1)
+        self.hidden = nn.Linear(768, 768)
 
         self.loss_fn = nn.BCEWithLogitsLoss()
 
@@ -56,11 +62,23 @@ class BertClassifierPooling(pl.LightningModule):
             output_hidden_states=output_hidden_states,
         )
 
-        # verificare che cos'è il pooled output (in realtà conviene verificare che cos'è tutto l'output)
-        pooled_output = outputs[1]
-
+        pooled_output = outputs.pooler_output
         pooled_output = self.dropout(pooled_output)
-        logits = self.classifier(pooled_output)
+
+        last_hidden_state = outputs.last_hidden_state
+        last_hidden_state = self.dropout(last_hidden_state)
+        lstm_output, _ = self.lstm(last_hidden_state)
+        lstm_output = lstm_output.transpose(1, 2) # Convert from [batch_size, seq_len, hidden_size] to [batch_size, hidden_size, seq_len]
+
+        avg_pooling = self.avg_pooling(lstm_output)
+        avg_pooling = avg_pooling.view(avg_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
+
+        max_pooling = self.max_pooling(lstm_output)
+        max_pooling = max_pooling.view(max_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
+
+        sum_output = pooled_output + avg_pooling + max_pooling
+
+        logits = self.classifier(sum_output)
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         loss = 0
@@ -74,6 +92,7 @@ class BertClassifierPooling(pl.LightningModule):
             outputs = (loss,) + outputs
 
         return outputs  # (loss), output, (hidden_states), (attentions)
+
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
