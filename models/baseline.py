@@ -5,18 +5,15 @@ import torch.nn as nn
 import torchmetrics
 
 class BertBaselineClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels, config):
-    #n_training_steps=None, n_warmup_steps=None, lr=2e-5, classifier_dropout=.1):
+    def __init__(self, model_name, num_labels, config, n_training_steps=None, n_warmup_steps=None):
+        #lr=2e-5, classifier_dropout=.1):
         super().__init__()
-
 
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
         self.config.num_labels = num_labels
 
         classifier_dropout = config["classifier_dropout"]
-        n_training_steps = config["n_training_steps"]
-        n_warmup_steps = config["n_warmup_steps"]
         lr = config["lr"]
 
         self.config.classifier_dropout = classifier_dropout
