@@ -99,11 +99,6 @@ class BertBaselineClassifier(pl.LightningModule):
         self.val_losses.append(loss)
         return loss
 
-    def validation_epoch_end(self, outputs):
-        avg_loss = torch.stack(
-            [x for x in outputs[0]]).mean()
-        self.log("ptl/val_loss", avg_loss)
-
     def test_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]

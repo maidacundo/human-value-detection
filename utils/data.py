@@ -19,7 +19,7 @@ class HumanValuesDataset(Dataset):
     self, 
     data: pd.DataFrame, 
     tokenizer: BertTokenizer, 
-    max_token_len: int = 128
+    max_token_len,
   ):
     self.tokenizer = tokenizer
     self.data = data
