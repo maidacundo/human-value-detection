@@ -12,7 +12,8 @@ class BertBaselineClassifier(pl.LightningModule):
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
         self.config.num_labels = num_labels
-
+        
+        self.batch_size = config["batch_size"]
         classifier_dropout = config["classifier_dropout"]
 
         self.config.classifier_dropout = classifier_dropout
