@@ -5,13 +5,20 @@ import torch.nn as nn
 import torchmetrics
 
 class BertBaselineClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None, lr=2e-5, classifier_dropout=.1):
+    def __init__(self, model_name, num_labels, config):
+    #n_training_steps=None, n_warmup_steps=None, lr=2e-5, classifier_dropout=.1):
         super().__init__()
 
 
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
         self.config.num_labels = num_labels
+
+        classifier_dropout = config["classifier_dropout"]
+        n_training_steps = config["n_training_steps"]
+        n_warmup_steps = config["n_warmup_steps"]
+        lr = config["lr"]
+
         self.config.classifier_dropout = classifier_dropout
         self.n_training_steps = n_training_steps
         self.n_warmup_steps = n_warmup_steps
@@ -95,6 +102,11 @@ class BertBaselineClassifier(pl.LightningModule):
         self.val_losses.append(loss)
         return loss
 
+    def validation_epoch_end(self, outputs):
+        avg_loss = torch.stack(
+            [x for x in outputs[0]]).mean()
+        self.log("ptl/val_loss", avg_loss)
+
     def test_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
@@ -113,7 +125,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = AdamW(self.parameters(), lr=self.lr)
+        optimizer = torch.optim.AdamW(self.parameters(), lr=self.lr)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
