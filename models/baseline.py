@@ -14,7 +14,6 @@ class BertBaselineClassifier(pl.LightningModule):
         self.config.num_labels = num_labels
 
         classifier_dropout = config["classifier_dropout"]
-        lr = config["lr"]
 
         self.config.classifier_dropout = classifier_dropout
         self.n_training_steps = n_training_steps
@@ -34,7 +33,6 @@ class BertBaselineClassifier(pl.LightningModule):
         self.losses = []
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
-        self.optimizers = config["optimizer"]
         self.lr = config["lr"]
 
     def forward(
@@ -118,7 +116,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optimizers(self.parameters(), lr=self.lr)
+        optimizer = torch.optim,AdamW(self.parameters(), lr=self.lr)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
