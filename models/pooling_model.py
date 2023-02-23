@@ -4,7 +4,7 @@ from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_
 import torch.nn as nn
 import torchmetrics
 
-class BertBaselineClassifier(pl.LightningModule):
+class BertClassifierPooling(pl.LightningModule):
     def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None, lr=2e-5, classifier_dropout=.1):
         super().__init__()
 
@@ -57,7 +57,7 @@ class BertBaselineClassifier(pl.LightningModule):
         )
 
         # verificare che cos'è il pooled output (in realtà conviene verificare che cos'è tutto l'output)
-        pooled_output = outputs.pooler_output
+        pooled_output = outputs[1]
 
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
