@@ -18,14 +18,12 @@ class BertClassifierPooling(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = BertModel.from_pretrained(model_name)
-        self.dropout = nn.Dropout(classifier_dropout)
-        self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
-
         self.lstm = nn.LSTM(self.config.hidden_size, self.config.hidden_size, batch_first=True, bidirectional=False)
         self.avg_pooling = nn.AdaptiveAvgPool1d(1)
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
-        self.hidden = nn.Linear(768, 768)
-
+        self.dropout = nn.Dropout(classifier_dropout)
+        self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
+        
         self.loss_fn = nn.BCEWithLogitsLoss()
 
         # self.init_weights() # https://pytorch.org/docs/stable/nn.init.html
@@ -64,7 +62,8 @@ class BertClassifierPooling(pl.LightningModule):
 
         pooled_output = outputs.pooler_output
         pooled_output = self.dropout(pooled_output)
-
+        
+        # fixare perchè il pooled output è considerato nel pooling
         last_hidden_state = outputs.last_hidden_state
         last_hidden_state = self.dropout(last_hidden_state)
         lstm_output, _ = self.lstm(last_hidden_state)
