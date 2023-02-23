@@ -33,6 +33,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.losses = []
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
+        self.optim = config["optim"]
         self.lr = config["lr"]
 
     def forward(
@@ -116,7 +117,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = torch.optim,AdamW(self.parameters(), lr=self.lr)
+        optimizer = self.optim(self.parameters(), lr=self.lr)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
