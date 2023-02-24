@@ -14,7 +14,7 @@ class HyperparameterTuner:
 
         self.model_name = model_params["model_name"]
         self.num_labels = model_params["num_labels"]
-        self.n_training_steps = model_params["n_training_steps"] 
+        self.total_training_steps = model_params["total_training_steps"] 
         self.warmup_steps =  model_params["warmup_steps"]
 
         self.n_trials = study_params["n_trials"]
@@ -40,7 +40,7 @@ class HyperparameterTuner:
             self.train_df, self.val_df, self.test_df, self.tokenizer, batch_size=batch_size, max_token_len=max_tok_len)
         data_module.setup()
 
-        baseline = BertBaselineClassifier(self.model_name, self.num_labels, config, self.n_training_steps, self.warmup_steps)
+        baseline = BertBaselineClassifier(self.model_name, self.num_labels, config, self.total_training_steps, self.warmup_steps)
 
         early_stopping_callback = EarlyStopping(monitor='val_loss', patience=3)
         logger = pl.loggers.TensorBoardLogger("lightning_logs", name="human-values")
