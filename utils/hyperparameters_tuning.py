@@ -1,7 +1,7 @@
 import optuna
 import torch
 import pytorch_lightning as pl
-from data import HumanValuesDataModule
+from utils.data import HumanValuesDataModule
 from models.baseline import BertBaselineClassifier
 
 class HyperparameterTuner:
