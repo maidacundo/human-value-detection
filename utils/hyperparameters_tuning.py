@@ -6,16 +6,13 @@ from utils.data import HumanValuesDataModule
 from models.baseline import BertBaselineClassifier
 
 class HyperparameterTuner:
-    def __init__(self, train_df, val_df, test_df, tokenizer, model_name, num_labels,
-                 total_training_steps, warmup_steps):
+    def __init__(self, train_df, val_df, test_df, tokenizer, model_name, num_labels):
         self.train_df = train_df
         self.val_df = val_df
         self.test_df = test_df
         self.tokenizer = tokenizer
         self.model_name = model_name
         self.num_labels = num_labels
-        self.total_training_steps = total_training_steps
-        self.warmup_steps = warmup_steps
         self.study = None
 
     def objective(self, trial: optuna.Trial, n_epochs=2, lim_train_batches=0.2, lim_val_batches=0.2):
