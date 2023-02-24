@@ -6,16 +6,22 @@ from utils.data import HumanValuesDataModule
 from models.baseline import BertBaselineClassifier
 
 class HyperparameterTuner:
-    def __init__(self, train_df, val_df, test_df, tokenizer, model_name, num_labels):
-        self.train_df = train_df
-        self.val_df = val_df
-        self.test_df = test_df
-        self.tokenizer = tokenizer
-        self.model_name = model_name
-        self.num_labels = num_labels
+    def __init__(self, data_params, model_params, study_params):
+        self.train_df = data_params["train_df"]
+        self.val_df = data_params["val_df"]
+        self.test_df = data_params["test_df"]
+        self.tokenizer = data_params["tokenizer"]
+
+        self.model_name = model_params["model_name"]
+        self.num_labels = model_params["num_labels"]
+
+        self.n_trials = study_params["n_trials"]
+        self.n_epochs = study_params["n_epochs"]
+        self.lim_train_batches = study_params["lim_train_batches"]
+        self.lim_val_batches = study_params["lim_val_batches"]
         self.study = None
 
-    def objective(self, trial: optuna.Trial, n_epochs=2, lim_train_batches=0.2, lim_val_batches=0.2):
+    def objective(self, trial: optuna.Trial):
         lr = trial.suggest_uniform("lr", 1e-6, 1e-3)
         batch_size = trial.suggest_categorical("batch_size", [8])
         optimizer = trial.suggest_categorical("optim", [torch.optim.Adam, torch.optim.AdamW])
@@ -40,9 +46,9 @@ class HyperparameterTuner:
         trainer = pl.Trainer(
             logger=logger,
             callbacks=[early_stopping_callback],
-            max_epochs=n_epochs,
-            limit_train_batches=lim_train_batches,
-            limit_val_batches=lim_val_batches,
+            max_epochs=self.n_epochs,
+            limit_train_batches=self.lim_train_batches,
+            limit_val_batches=self.lim_val_batches,
             accelerator='gpu',
             devices=1
         )
@@ -55,9 +61,9 @@ class HyperparameterTuner:
 
         return value
 
-    def run_study(self, n_trials=10):
+    def run_study(self):
         self.study = optuna.create_study(direction="minimize")
-        self.study.optimize(self.objective, n_trials=n_trials)
+        self.study.optimize(self.objective, n_trials=self.n_trials)
 
     def get_best_hyperparams(self):
         if self.study is None:
