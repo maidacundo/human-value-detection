@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 def plot_stance_analysis(df, labels_columns):
@@ -43,4 +44,53 @@ def plot_stance_analysis(df, labels_columns):
     # add a legend
     ax.legend()
 
+    plt.show()
+
+def plot_label_distribution(labels):
+    label_counts = labels.iloc[:,1:].astype(int).sum().sort_values(ascending=False)
+
+    # Plot the label distribution as a bar chart
+    plt.figure(figsize=(10,6))
+    plt.bar(label_counts.index, label_counts.values)
+    plt.xticks(rotation=90)
+    plt.xlabel('Label Category')
+    plt.ylabel('Number of Arguments')
+    plt.title('Label Distribution in Training Set')
+    plt.show()
+
+    # Print the label counts as a table
+    print('Label Counts:\n', label_counts)
+
+def plot_argument_lengths(arguments):
+    # Create a new column for argument length
+    arguments['arg_length'] = arguments['Conclusion'].str.len() + arguments['Stance'].str.len() + arguments['Premise'].str.len()
+
+    # Plot the histogram of argument lengths
+    plt.hist(arguments['arg_length'], bins=50)
+    plt.title('Distribution of Argument Lengths')
+    plt.xlabel('Argument Length')
+    plt.ylabel('Frequency')
+    plt.show()
+
+def plot_labels_correlation(labels):
+    # compute the correlation matrix
+    corr_matrix = labels.corr()
+
+    plt.figure(figsize=(10, 8))
+
+    # set font size
+    sns.set(font_scale=1)
+
+    # plot heatmap
+    sns.heatmap(corr_matrix, annot=False, cmap='coolwarm', fmt='')
+
+    # set axis labels and title
+    plt.xlabel('Label Categories')
+    plt.ylabel('Label Categories')
+    plt.title('Correlation between Label Categories')
+
+    # rotate x-axis labels for better readability
+    plt.xticks(rotation=45, ha='right')
+
+    # show plot
     plt.show()
