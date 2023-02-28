@@ -15,20 +15,21 @@ def plot_stance_analysis(df, labels_columns):
     bar_width = 0.35
     bar_positions1 = np.arange(len(sums_favor))
     bar_positions2 = [p + bar_width for p in bar_positions1]
-    
+
     labels = ['in favor of', 'against']
 
     # plot the bar chart for df1
-    barlist_favor = ax.bar(bar_positions1, sums_favor.values, bar_width, label=labels[0])
+    barlist_favor = ax.bar(bar_positions1, sums_favor.values, bar_width, label=labels[0], hatch='')
 
     # plot the bar chart for df2
-    barlist_against = ax.bar(bar_positions2, sums_against.values, bar_width, label=labels[1])
+    barlist_against = ax.bar(bar_positions2, sums_against.values, bar_width, label=labels[1], hatch='')
 
+    # highlight the smaller bar with a different hatch pattern
     for i, bar in enumerate(zip(barlist_favor, barlist_against)):
         if barlist_favor[i].get_height() > barlist_against[i].get_height():
-            barlist_against[i].set(linestyle='--', color='grey')
+            barlist_against[i].set(hatch='//')
         elif barlist_favor[i].get_height() < barlist_against[i].get_height():
-            barlist_favor[i].set(linestyle='--', color='grey')
+            barlist_favor[i].set(hatch='//')
 
     # set the x-axis tick labels
     ax.set_xticks([p + bar_width / 2 for p in bar_positions1])
