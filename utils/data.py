@@ -55,7 +55,7 @@ class HumanValuesDataset(Dataset):
 
 class HumanValuesDataModule(pl.LightningDataModule):
 
-  def __init__(self, train_df, val_df, test_df, tokenizer, batch_size=8, max_token_len=128, oversampling=False):
+  def __init__(self, train_df, val_df, test_df, tokenizer, batch_size=8, max_token_len=128):
     super().__init__()
     self.batch_size = batch_size
     self.train_df = train_df
@@ -64,7 +64,6 @@ class HumanValuesDataModule(pl.LightningDataModule):
     self.tokenizer = tokenizer
     self.max_token_len = max_token_len
     self.num_workers = multiprocessing.cpu_count()
-    self.oversampling = oversampling
 
   def setup(self, stage=None):
     self.train_dataset = HumanValuesDataset(
@@ -84,33 +83,14 @@ class HumanValuesDataModule(pl.LightningDataModule):
       self.tokenizer,
       self.max_token_len
     )
-  # Calculate class weights for each label
-    self.class_weights = []
-    for label_idx in range(len(self.train_dataset[0]['labels'])):
-        class_count = [0, 0]
-        for data in self.train_dataset:
-            label = data['labels'][label_idx]
-            class_count[int(label)] += 1
-        self.class_weights.append(sum(class_count) / (2 * class_count[1] + class_count[0]))
 
   def train_dataloader(self):
-    if self.oversampling:
-        # Use weighted sampler for oversampling minority classes
-        weights = [self.class_weights[int(label_idx)] for label_idx in range(len(self.train_dataset[0]['labels']))]
-        sampler = WeightedRandomSampler(weights, len(self.train_dataset))
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            sampler=sampler,
-            num_workers=self.num_workers
-        )
-    else:
-        return DataLoader(
-            self.train_dataset,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers
-        )
+    return DataLoader(
+        self.train_dataset,
+        batch_size=self.batch_size,
+        shuffle=True,
+        num_workers=self.num_workers
+    )
 
 
   def val_dataloader(self):

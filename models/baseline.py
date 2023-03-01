@@ -47,6 +47,7 @@ class BertBaselineClassifier(pl.LightningModule):
         labels=None,
         output_attentions=None,
         output_hidden_states=None,
+        reg_lambda=0.01
     ):
 
         outputs = self.bert(
@@ -75,9 +76,17 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
                 loss = self.loss_fn(logits, labels)
+
+            # calculate L2 regularization term and add it to the loss
+            l2_reg = torch.tensor(0.0).to(self.device)
+            for param in self.parameters():
+                l2_reg += torch.norm(param, p=2)
+            loss += reg_lambda * l2_reg
+
             outputs = (loss,) + outputs
 
         return outputs  # (loss), output, (hidden_states), (attentions)
+
 
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
