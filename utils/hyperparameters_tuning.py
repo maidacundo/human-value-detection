@@ -18,7 +18,7 @@ class HyperparameterTuner:
         self.study = None
 
     def objective(self, trial: optuna.Trial):
-        lr = trial.suggest_float("lr", 1e-6, 1e-4)
+        lr = trial.suggest_float("lr", 1e-6, 9e-5)
         batch_size = trial.suggest_categorical("batch_size", [8])
         optimizer = torch.optim.AdamW
         classifier_dropout = trial.suggest_categorical("optimizer_dropout", [.1, .2, .3])
