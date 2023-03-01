@@ -21,11 +21,9 @@ class HyperparameterTuner:
         lr = trial.suggest_float("lr", 1e-6, 9e-5)
         batch_size = trial.suggest_categorical("batch_size", [8])
         optimizer = torch.optim.AdamW
-        classifier_dropout = trial.suggest_categorical("optimizer_dropout", [.1, .2, .3])
-        max_tok_len = trial.suggest_categorical("max_tok_len", [128, 256, 300, 368])
+        classifier_dropout = trial.suggest_categorical("classifier_dropout", [.1, .2, .3])
 
         self.data_module.batch_size=batch_size
-        self.data_module.max_token_len=max_tok_len
         self.data_module.setup()
 
         self.model.optim = optimizer

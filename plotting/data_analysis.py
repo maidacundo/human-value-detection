@@ -63,12 +63,14 @@ def plot_label_distribution(labels):
 
 def plot_argument_lengths(arguments):
     # Create a new column for argument length
-    arguments['arg_length'] = arguments['Conclusion'].str.len() + arguments['Stance'].str.len() + arguments['Premise'].str.len()
+    arguments['arg_length'] = arguments['Conclusion'].str.split().apply(len) + \
+                                    arguments['Stance'].str.split().apply(len) + \
+                                    arguments['Premise'].str.split().apply(len)
 
     # Plot the histogram of argument lengths
     plt.hist(arguments['arg_length'], bins=50)
     plt.title('Distribution of Argument Lengths')
-    plt.xlabel('Argument Length')
+    plt.xlabel('Argument Length (in words)')
     plt.ylabel('Frequency')
     plt.show()
 

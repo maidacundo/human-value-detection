@@ -47,7 +47,7 @@ class BertBaselineClassifier(pl.LightningModule):
         labels=None,
         output_attentions=None,
         output_hidden_states=None,
-        reg_lambda=0.01
+        reg_lambda=0.1
     ):
 
         outputs = self.bert(
