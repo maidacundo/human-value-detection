@@ -4,6 +4,7 @@ from transformers import BertTokenizerFast as BertTokenizer
 import torch
 import pytorch_lightning as pl
 import multiprocessing
+from torch.utils.data import WeightedRandomSampler
 
 def get_processed_df(input_df, labels_columns, tokenizer_sep_token):
     df = pd.DataFrame()
@@ -82,14 +83,34 @@ class HumanValuesDataModule(pl.LightningDataModule):
       self.tokenizer,
       self.max_token_len
     )
+  # Calculate class weights for each label
+    self.class_weights = []
+    for label_idx in range(len(self.train_dataset[0]['labels'])):
+        class_count = [0, 0]
+        for data in self.train_dataset:
+            label = data['labels'][label_idx]
+            class_count[int(label)] += 1
+        self.class_weights.append(sum(class_count) / (2 * class_count[1] + class_count[0]))
 
   def train_dataloader(self):
-    return DataLoader(
-      self.train_dataset,
-      batch_size=self.batch_size,
-      shuffle=True,
-      num_workers=self.num_workers
-    )
+    if self.oversampling:
+        # Use weighted sampler for oversampling minority classes
+        weights = [self.class_weights[int(label_idx)] for label_idx in range(len(self.train_dataset[0]['labels']))]
+        sampler = WeightedRandomSampler(weights, len(self.train_dataset))
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            sampler=sampler,
+            num_workers=self.num_workers
+        )
+    else:
+        return DataLoader(
+            self.train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers
+        )
+
 
   def val_dataloader(self):
     return DataLoader(
