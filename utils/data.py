@@ -55,7 +55,7 @@ class HumanValuesDataset(Dataset):
 
 class HumanValuesDataModule(pl.LightningDataModule):
 
-  def __init__(self, train_df, val_df, test_df, tokenizer, batch_size=8, max_token_len=128):
+  def __init__(self, train_df, val_df, test_df, tokenizer, batch_size=8, max_token_len=128, oversampling=False):
     super().__init__()
     self.batch_size = batch_size
     self.train_df = train_df
@@ -64,6 +64,7 @@ class HumanValuesDataModule(pl.LightningDataModule):
     self.tokenizer = tokenizer
     self.max_token_len = max_token_len
     self.num_workers = multiprocessing.cpu_count()
+    self.oversampling = oversampling
 
   def setup(self, stage=None):
     self.train_dataset = HumanValuesDataset(
