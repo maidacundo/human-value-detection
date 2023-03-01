@@ -22,7 +22,7 @@ class BertSVMmodel(pl.LightningModule):
         )
 
         # verificare che cos'è il pooled output (in realtà conviene verificare che cos'è tutto l'output)
-        embeddings = outputs[0][:,0,:].numpy()
+        embeddings = outputs[0][:,0,:]
 
         return embeddings 
     
