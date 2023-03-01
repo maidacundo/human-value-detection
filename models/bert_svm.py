@@ -26,7 +26,7 @@ class BertSVMmodel(pl.LightningModule):
 
         return embeddings 
     
-    def training_step(self, batch):
+    def predict_step(self, batch):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         outputs = self(input_ids, attention_mask)
