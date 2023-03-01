@@ -1,15 +1,57 @@
-import torch
-import torch.nn as nn
+import numpy as np
 import time
 import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, accuracy_score
+import torch
+from torchmetrics import Accuracy
 
-# device = 'cpu'
+def print_classification_report_thresholding(true_labels, pred_labels, labels_columns, threshold, num_labels=20):
+    pred_labels_threshold = np.where(pred_labels > threshold, 1, 0)
 
+    print(classification_report(
+      true_labels, 
+      pred_labels_threshold, 
+      target_names=labels_columns, 
+      zero_division=0
+    ))
+
+    accuracy = Accuracy(task="multiclass", num_classes=num_labels)
+    accuracy_value = accuracy(torch.tensor(pred_labels_threshold), torch.tensor(true_labels)).item()
+    print(f'accuracy: {accuracy_value}')
+
+def get_f1_optimized_thresholding(true_labels, pred_labels, labels_columns):
+    threshold_list = []
+    labels_results = {}
+    for label in labels_columns:
+        labels_results[label] = []
+
+    for threshold in range(0, 90, 5):
+        threshold = threshold / 100
+        threshold_list.append(threshold)
+
+        pred_labels_threshold = np.where(pred_labels > threshold, 1, 0)
+
+        report = classification_report(
+              true_labels, 
+              pred_labels_threshold, 
+              target_names=labels_columns, 
+              zero_division=0,
+              output_dict=True
+            )
+
+        for label in labels_columns:
+            f1 = report[label]['f1-score']
+            labels_results[label].append(f1)
+    f1_score_optimized_thresholds = []
+
+    for label in labels_columns:
+        max_f1_idx = np.argmax(labels_results[label])
+        f1_score_optimized_thresholds.append(threshold_list[max_f1_idx])
+    return f1_score_optimized_thresholds
+
+    
 class SurrogateHeaviside(torch.autograd.Function):
     
-    # Activation function with surrogate gradient
-#     sigma = 100.0
-
     @staticmethod 
     def forward(ctx, input, sigma):
         
@@ -35,8 +77,6 @@ threshold_fn = SurrogateHeaviside.apply
 class ThresholdModel(nn.Module):
     def __init__(self, threshold_fn, device, t=0.5, sigma=100., num_labels=10, use_dense=False):
         super(ThresholdModel, self).__init__()
-        
-        # define num_labels seuils differents, initialisés à 0.5
 
         self.dense = torch.nn.Linear(num_labels, num_labels)
 
@@ -56,40 +96,8 @@ class ThresholdModel(nn.Module):
         else:
             out = self.threshold_fn(x.to(self.device, dtype=torch.float)-self.thresh.to(self.device, dtype=torch.float), 
                                 self.sigma.to(self.device, dtype=torch.float))
-#         out = out.clamp_(min=0.01, max=0.99)
-        # out = self.dense(x.to(device, dtype=torch.float))
-        # out = F.sigmoid(out)
-        # out = self.threshold_fn(out-F.sigmoid(self.thresh.to(device, dtype=torch.float)))
+
         return out
-
-    
-    def clamp(self):
-        
-        self.thresh.data.clamp_(min=0., max=1.)
-
-        
-def F1_loss_objective(binarized_output, y_true):
-    # let's first convert binary vector prob into logits
-#     prob = torch.clamp(prob, 1.e-12, 0.9999999)
-    
-    average = 'macro'
-    # average = 'micro'
-    epsilon = torch.tensor(1e-12)
-    
-    if average == 'micro':
-        y_true = torch.flatten(y_true)
-        binarized_output = torch.flatten(binarized_output)
-        
-    true_positives = torch.sum(y_true * binarized_output, dim=0)
-    predicted_positives = torch.sum(binarized_output, dim=0)
-    positives = torch.sum(y_true, dim=0)
-    precision = true_positives / (predicted_positives + epsilon)
-    recall = true_positives / (positives + epsilon)
-
-    f1 = 2 * ((precision * recall) / (precision + recall + epsilon))
-#     return precision, recall, f1
-    return - f1.mean()
-
 
 def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs: int, criterion, num_labels: int, lr=0.00001, verbose=True):
 
@@ -128,8 +136,6 @@ def train_thresholding_model(model: ThresholdModel, predictions, labels, epochs:
         PREC_learned_AT_thresholds = learned_AT_thresholds
         if verbose:
             print ('Epoch [{}], Loss: {:.4f}'.format(epoch+1, loss))
-        # if torch.sum(delta_thresh) < 0.01: break
     print('-'*20)
     plt.figure()
-    # plt.figure(figsize=(8,6))
     plt.plot([loss.detach().cpu() for loss in losses])
