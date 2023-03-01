@@ -76,7 +76,7 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
                 loss = self.loss_fn(logits, labels)
-            BCELoss = loss
+            BCELoss = loss.clone()
             # calculate L2 regularization term and add it to the loss
             l2_reg = torch.tensor(0.0).to(self.device)
             for param in self.parameters():
