@@ -15,11 +15,11 @@ class BertSVMmodel(pl.LightningModule):
         input_ids=None,
         attention_mask=None,
     ):
-        with torch.no_grad():
-            outputs = self.bert(
+        
+        outputs = self.bert(
                 input_ids,
                 attention_mask=attention_mask
-            )
+        )
 
         # verificare che cos'è il pooled output (in realtà conviene verificare che cos'è tutto l'output)
         embeddings = outputs[0][:,0,:].numpy()
