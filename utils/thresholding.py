@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import classification_report, accuracy_score
 import torch
 from torchmetrics import Accuracy
+import torch.nn as nn
 
 def print_classification_report_thresholding(true_labels, pred_labels, labels_columns, threshold, num_labels=20):
     pred_labels_threshold = np.where(pred_labels > threshold, 1, 0)
