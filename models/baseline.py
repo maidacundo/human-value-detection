@@ -1,12 +1,11 @@
 import torch
 import pytorch_lightning as pl
-from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
 import torchmetrics
 
 class BertBaselineClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None):
-        #lr=2e-5, classifier_dropout=.1):
+    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None, use_normalization=True):
         super().__init__()
 
         self.optim = optimizer
@@ -20,7 +19,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.n_training_steps = n_training_steps
         self.n_warmup_steps = n_warmup_steps
 
-        self.bert = BertModel.from_pretrained(model_name)
+        self.bert = AutoModel.from_pretrained(model_name)
         self.dropout = nn.Dropout(self.classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
@@ -35,6 +34,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
 
+        self.use_normalization = use_normalization
 
     def forward(
         self,
@@ -76,16 +76,16 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
                 loss = self.loss_fn(logits, labels)
-
             # calculate L2 regularization term and add it to the loss
-            l2_reg = torch.tensor(0.0).to(self.device)
-            for param in self.parameters():
-                l2_reg += torch.norm(param, p=2)
-            loss += reg_lambda * l2_reg
+            if self.use_normalization:
+                l2_reg = torch.tensor(0.0).to(self.device)
+                for param in self.parameters():
+                    l2_reg += torch.norm(param, p=2)
+                loss += reg_lambda * l2_reg
 
             outputs = (loss,) + outputs
 
-        return outputs  # (loss), output, (hidden_states), (attentions)
+        return outputs  # (loss),  output, (hidden_states), (attentions)
 
 
     def training_step(self, batch, batch_idx):
