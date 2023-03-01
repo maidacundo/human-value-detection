@@ -76,16 +76,16 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
                 loss = self.loss_fn(logits, labels)
-
+            BCELoss = loss
             # calculate L2 regularization term and add it to the loss
             l2_reg = torch.tensor(0.0).to(self.device)
             for param in self.parameters():
                 l2_reg += torch.norm(param, p=2)
             loss += reg_lambda * l2_reg
 
-            outputs = (loss,) + outputs
+            outputs = (loss, BCELoss) + outputs
 
-        return outputs  # (loss), output, (hidden_states), (attentions)
+        return outputs  # (loss, BCELoss),  output, (hidden_states), (attentions)
 
 
     def training_step(self, batch, batch_idx):
@@ -94,6 +94,7 @@ class BertBaselineClassifier(pl.LightningModule):
         labels = batch["labels"]
         outputs = self(input_ids, attention_mask, labels=labels)
         self.log("train_loss", outputs[0], prog_bar=True, logger=True)
+        self.log("train_BCE_loss", outputs[1], prog_bar=True, logger=True)
         
         self.losses.append(outputs[0])
         return {"loss": outputs[0], "predictions": torch.sigmoid(outputs[1]), "labels": labels}
@@ -122,7 +123,7 @@ class BertBaselineClassifier(pl.LightningModule):
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
         outputs = self(input_ids, attention_mask, labels=labels)
-        return torch.sigmoid(outputs[1])
+        return torch.sigmoid(outputs[2])
 
     def configure_optimizers(self):
 

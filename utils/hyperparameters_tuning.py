@@ -2,8 +2,6 @@ import optuna
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping
-from utils.data import HumanValuesDataModule
-from models.baseline import BertBaselineClassifier
 
 class HyperparameterTuner:
     def __init__(self, data_module, model, study_params):
@@ -34,10 +32,8 @@ class HyperparameterTuner:
 
 
         early_stopping_callback = EarlyStopping(monitor='val_loss', patience=3)
-        logger = pl.loggers.TensorBoardLogger("lightning_logs", name="human-values")
 
         trainer = pl.Trainer(
-            logger=logger,
             callbacks=[early_stopping_callback],
             max_epochs=self.n_epochs,
             limit_train_batches=self.lim_train_batches,
