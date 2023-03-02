@@ -126,7 +126,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr)
+        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
