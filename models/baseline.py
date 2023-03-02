@@ -34,7 +34,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
 
-        self.use_normalization = use_regularization
+        self.use_regularization = use_regularization
 
     def forward(
         self,
