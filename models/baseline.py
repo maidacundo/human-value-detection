@@ -80,7 +80,7 @@ class BertBaselineClassifier(pl.LightningModule):
             if self.use_regularization:
                 l2_reg = torch.tensor(0.0).to(device=self.device)
                 for param in self.parameters():
-                    l2_reg += torch.linalg.norm(param, ord=2)
+                    l2_reg += torch.linalg.vector_norm(param)
                 loss += reg_lambda * l2_reg
 
         return outputs  # (loss),  output, (hidden_states), (attentions)
