@@ -34,7 +34,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
 
-        self.use_regularization = use_regularization
+        self.use_normalization = use_regularization
 
     def forward(
         self,
@@ -78,10 +78,12 @@ class BertBaselineClassifier(pl.LightningModule):
                 loss = self.loss_fn(logits, labels)
             # calculate L2 regularization term and add it to the loss
             if self.use_regularization:
-                l2_reg = torch.tensor(0.0).to(device=self.device)
+                l2_reg = torch.tensor(0.0).to(self.device)
                 for param in self.parameters():
-                    l2_reg += torch.norm(param)
+                    l2_reg += torch.norm(param, p=2)
                 loss += reg_lambda * l2_reg
+
+            outputs = (loss,) + outputs
 
         return outputs  # (loss),  output, (hidden_states), (attentions)
 
@@ -124,7 +126,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
+        optimizer = self.optim(self.parameters(), lr=self.lr)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
