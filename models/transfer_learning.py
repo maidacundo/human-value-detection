@@ -20,11 +20,15 @@ class BertClassifierTransferLearning(pl.LightningModule):
         self.n_training_steps = n_training_steps
         self.n_warmup_steps = n_warmup_steps
 
-        self.bert = AutoModel.from_pretrained(model_name)
+        self.transformer = AutoModel.from_pretrained(model_name)
 
         # freezing the first layers of the model
-        for i in range(self.config.num_hidden_layers-num_layers_tl):
-            for param in self.bert.encoder.layer[i].parameters():
+        if num_layers_tl != 0:
+            for i in range(self.config.num_hidden_layers-num_layers_tl):
+                for param in self.transformer.encoder.layer[i].parameters():
+                    param.requires_grad = False
+        elif num_layers_tl == 0:
+            for param in self.transformer.parameters():
                 param.requires_grad = False
 
         self.dropout = nn.Dropout(classifier_dropout)
@@ -54,7 +58,7 @@ class BertClassifierTransferLearning(pl.LightningModule):
         output_hidden_states=None,
     ):
 
-        outputs = self.bert(
+        outputs = self.transformer(
             input_ids,
             attention_mask=attention_mask,
             token_type_ids=token_type_ids,
