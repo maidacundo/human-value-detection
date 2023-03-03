@@ -9,6 +9,9 @@ class TransformerClassifierPooling(pl.LightningModule):
     def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
 
+        self.optim = optimizer
+        self.lr = lr
+        self.classifier_dropout = classifier_dropout
 
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
@@ -34,7 +37,6 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.losses = []
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
-        self.lr = lr
 
     def forward(
         self,
