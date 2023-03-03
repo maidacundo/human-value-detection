@@ -77,12 +77,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         max_pooling = self.max_pooling(lstm_output)
         max_pooling = max_pooling.view(max_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
 
-        sum_output = pooled_output
-        
-        if self.use_max:
-            sum_output += max_pooling
-        if self.use_avg:
-            sum_output += avg_pooling
+        sum_output = pooled_output + max_pooling + avg_pooling
 
         sum_output = self.dropout(sum_output)
 
