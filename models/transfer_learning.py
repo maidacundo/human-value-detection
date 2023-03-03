@@ -1,6 +1,6 @@
 import torch
 import pytorch_lightning as pl
-from transformers import AutoConfig, AutoConfig, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
 import torchmetrics
 
@@ -20,7 +20,7 @@ class BertClassifierTransferLearning(pl.LightningModule):
         self.n_training_steps = n_training_steps
         self.n_warmup_steps = n_warmup_steps
 
-        self.bert = AutoConfig.from_pretrained(model_name)
+        self.bert = AutoModel.from_pretrained(model_name)
 
         # freezing the first layers of the model
         for i in range(self.config.num_hidden_layers-num_layers_tl):
@@ -40,7 +40,7 @@ class BertClassifierTransferLearning(pl.LightningModule):
         self.losses = []
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
-        
+
     def forward(
         self,
         input_ids=None,
