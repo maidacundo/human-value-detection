@@ -1,12 +1,12 @@
 import torch
 import pytorch_lightning as pl
-from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
 import torchmetrics
 import torch.nn.functional as F
 
-class BertClassifierPooling(pl.LightningModule):
-    def __init__(self, model_name, num_labels, n_training_steps=None, n_warmup_steps=None, lr=2e-5, classifier_dropout=.1):
+class TransformerClassifierPooling(pl.LightningModule):
+    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
 
 
@@ -17,7 +17,7 @@ class BertClassifierPooling(pl.LightningModule):
         self.n_training_steps = n_training_steps
         self.n_warmup_steps = n_warmup_steps
 
-        self.bert = BertModel.from_pretrained(model_name)
+        self.bert = AutoModel.from_pretrained(model_name)
         self.lstm = nn.LSTM(self.config.hidden_size, self.config.hidden_size, batch_first=True, bidirectional=False)
         self.avg_pooling = nn.AdaptiveAvgPool1d(1)
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
@@ -63,8 +63,7 @@ class BertClassifierPooling(pl.LightningModule):
         pooled_output = outputs.pooler_output
         pooled_output = self.dropout(pooled_output)
         
-        # fixare perchè il pooled output è considerato nel pooling
-        last_hidden_state = outputs.last_hidden_state
+        last_hidden_state = outputs.last_hidden_state[:, 1:, :]
         last_hidden_state = self.dropout(last_hidden_state)
         lstm_output, _ = self.lstm(last_hidden_state)
         lstm_output = lstm_output.transpose(1, 2) # Convert from [batch_size, seq_len, hidden_size] to [batch_size, hidden_size, seq_len]
@@ -131,7 +130,7 @@ class BertClassifierPooling(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = AdamW(self.parameters(), lr=self.lr)
+        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
