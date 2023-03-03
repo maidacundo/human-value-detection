@@ -1,25 +1,26 @@
 import torch
 import pytorch_lightning as pl
-from transformers import AutoConfig, BertModel, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoConfig, AutoConfig, AdamW, get_linear_schedule_with_warmup
 import torch.nn as nn
 import torchmetrics
 
 class BertClassifierTransferLearning(pl.LightningModule):
-    def __init__(self, model_name, num_labels, config, n_training_steps=None, n_warmup_steps=None, num_layers_tl=3):
+    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None, num_layers_tl=3):
         #lr=2e-5, classifier_dropout=.1):
         super().__init__()
+
+        self.optim = optimizer
+        self.lr = lr
+        self.classifier_dropout = classifier_dropout
 
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
         self.config.num_labels = num_labels
-
-        classifier_dropout = config["classifier_dropout"]
-
         self.config.classifier_dropout = classifier_dropout
         self.n_training_steps = n_training_steps
         self.n_warmup_steps = n_warmup_steps
 
-        self.bert = BertModel.from_pretrained(model_name)
+        self.bert = AutoConfig.from_pretrained(model_name)
 
         # freezing the first layers of the model
         for i in range(self.config.num_hidden_layers-num_layers_tl):
@@ -39,9 +40,7 @@ class BertClassifierTransferLearning(pl.LightningModule):
         self.losses = []
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
-        self.optim = config["optim"]
-        self.lr = config["lr"]
-
+        
     def forward(
         self,
         input_ids=None,
@@ -123,7 +122,7 @@ class BertClassifierTransferLearning(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr)
+        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,

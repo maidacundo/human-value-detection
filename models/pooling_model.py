@@ -6,7 +6,7 @@ import torchmetrics
 import torch.nn.functional as F
 
 class TransformerClassifierPooling(pl.LightningModule):
-    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None, use_avg=True,  use_max=True):
+    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
 
         self.optim = optimizer
@@ -28,8 +28,6 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
         
         self.loss_fn = nn.BCEWithLogitsLoss()
-        self.use_avg = use_avg
-        self.use_max = use_max
 
         # self.init_weights() # https://pytorch.org/docs/stable/nn.init.html
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
