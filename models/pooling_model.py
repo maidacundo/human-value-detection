@@ -6,7 +6,7 @@ import torchmetrics
 import torch.nn.functional as F
 
 class TransformerClassifierPooling(pl.LightningModule):
-    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None):
+    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None, use_avg=True,  use_max=True):
         super().__init__()
 
         self.optim = optimizer
@@ -28,6 +28,8 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
         
         self.loss_fn = nn.BCEWithLogitsLoss()
+        self.use_avg = use_avg
+        self.use_max = use_max
 
         # self.init_weights() # https://pytorch.org/docs/stable/nn.init.html
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
@@ -63,8 +65,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         )
 
         pooled_output = outputs.pooler_output
-        pooled_output = self.dropout(pooled_output)
-        
+
         last_hidden_state = outputs.last_hidden_state[:, 1:, :]
         last_hidden_state = self.dropout(last_hidden_state)
         lstm_output, _ = self.lstm(last_hidden_state)
@@ -76,10 +77,14 @@ class TransformerClassifierPooling(pl.LightningModule):
         max_pooling = self.max_pooling(lstm_output)
         max_pooling = max_pooling.view(max_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
 
-        avg_pooling = self.dropout(avg_pooling)
-        max_pooling = self.dropout(max_pooling)
+        sum_output = pooled_output
+        
+        if self.use_max:
+            sum_output += max_pooling
+        if self.use_avg:
+            sum_output += avg_pooling
 
-        sum_output = pooled_output + avg_pooling + max_pooling
+        sum_output = self.dropout(sum_output)
 
         logits = self.classifier(sum_output)
 
