@@ -20,6 +20,11 @@ class BertBaselineClassifier(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = AutoModel.from_pretrained(model_name)
+
+        self.conclusion_attention = nn.Linear(self.config.hidden_size, 1)
+        self.stance_attention = nn.Linear(self.config.hidden_size, 1)
+        self.premise_attention = nn.Linear(self.config.hidden_size, 1)
+        
         self.dropout = nn.Dropout(self.classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
