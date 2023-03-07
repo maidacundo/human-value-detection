@@ -24,7 +24,7 @@ class BertBaselineClassifier(pl.LightningModule):
         self.conclusion_attention = nn.Linear(self.config.hidden_size, 1)
         self.stance_attention = nn.Linear(self.config.hidden_size, 1)
         self.premise_attention = nn.Linear(self.config.hidden_size, 1)
-        
+
         self.dropout = nn.Dropout(self.classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
@@ -121,12 +121,12 @@ class BertBaselineClassifier(pl.LightningModule):
         conclusion_states = hidden_states[-1][:, 0, :]
         stance_states = hidden_states[-1][:, 1, :]
         premise_states = hidden_states[-1][:, 2, :]
-        
+        print(conclusion_states.shape)
         # Apply separate attention mechanisms to each part
         conclusion_attn = torch.softmax(self.conclusion_attention(conclusion_states), dim=1)
         stance_attn = torch.softmax(self.stance_attention(stance_states), dim=1)
         premise_attn = torch.softmax(self.premise_attention(premise_states), dim=1)
-        
+        print(conclusion_attn.shape)
         # Weight the hidden states by the attention scores
         conclusion_weighted_states = torch.bmm(conclusion_attn.unsqueeze(1), conclusion_states.unsqueeze(-1)).squeeze(-1)
         stance_weighted_states = torch.bmm(stance_attn.unsqueeze(1), stance_states.unsqueeze(-1)).squeeze(-1)
