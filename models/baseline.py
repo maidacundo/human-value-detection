@@ -36,6 +36,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
         self.use_regularization = use_regularization
 
+    """
     def forward(
         self,
         input_ids=None,
@@ -86,6 +87,70 @@ class BertBaselineClassifier(pl.LightningModule):
             outputs = (loss,) + outputs
 
         return outputs  # (loss),  output, (hidden_states), (attentions)
+    """
+    def forward(self,
+            input_ids=None,
+            attention_mask=None,
+            token_type_ids=None,
+            position_ids=None,
+            head_mask=None,
+            inputs_embeds=None,
+            labels=None,
+            output_attentions=None,
+            output_hidden_states=None,
+            reg_lambda=0.01):
+    
+        # Run the BERT model and get the hidden states
+        outputs = self.bert(input_ids=input_ids,
+                            attention_mask=attention_mask,
+                            token_type_ids=token_type_ids,
+                            position_ids=position_ids,
+                            head_mask=head_mask,
+                            inputs_embeds=inputs_embeds,
+                            output_attentions=output_attentions,
+                            output_hidden_states=True)
+        
+        hidden_states = outputs.hidden_states
+        
+        # Split the hidden states into the three parts
+        conclusion_states = hidden_states[-1][:, 0, :]
+        stance_states = hidden_states[-1][:, 1, :]
+        premise_states = hidden_states[-1][:, 2, :]
+        
+        # Apply separate attention mechanisms to each part
+        conclusion_attn = torch.softmax(self.conclusion_attention(conclusion_states), dim=1)
+        stance_attn = torch.softmax(self.stance_attention(stance_states), dim=1)
+        premise_attn = torch.softmax(self.premise_attention(premise_states), dim=1)
+        
+        # Weight the hidden states by the attention scores
+        conclusion_weighted_states = torch.bmm(conclusion_attn.unsqueeze(1), conclusion_states.unsqueeze(-1)).squeeze(-1)
+        stance_weighted_states = torch.bmm(stance_attn.unsqueeze(1), stance_states.unsqueeze(-1)).squeeze(-1)
+        premise_weighted_states = torch.bmm(premise_attn.unsqueeze(1), premise_states.unsqueeze(-1)).squeeze(-1)
+        
+        # Concatenate the weighted hidden states
+        concatenated_states = torch.cat([conclusion_weighted_states, stance_weighted_states, premise_weighted_states], dim=1)
+        
+        # Apply dropout and feed the concatenated states to the classifier
+        pooled_output = self.dropout(concatenated_states)
+        logits = self.classifier(pooled_output)
+
+        # Calculate the loss and add L2 regularization
+        outputs = (logits,) + outputs[2:]
+        loss = 0
+        if labels is not None:
+            if self.num_labels == 1:
+                loss_fn = nn.MSELoss()
+                loss = loss_fn(logits.view(-1), labels.view(-1))
+            else:
+                loss = self.loss_fn(logits, labels)
+            if self.use_regularization:
+                l2_reg = torch.tensor(0.0).to(self.device)
+                for param in self.parameters():
+                    l2_reg += torch.linalg.vector_norm(param)
+                loss += reg_lambda * l2_reg
+            outputs = (loss,) + outputs
+
+        return outputs
 
 
     def training_step(self, batch, batch_idx):
