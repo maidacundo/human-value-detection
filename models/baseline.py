@@ -107,13 +107,13 @@ class BertBaselineClassifier(pl.LightningModule):
             reg_lambda=0.01):
 
         print(input_ids[:,0])
-        print(input_ids[:,1])
-        print(input_ids[:,2])
+        print(attention_mask[:,0])
+        print(token_type_ids[:,0])
         # Run the BERT model and get the hidden states
         _, conclusion_states = self.bert(input_ids[:, 0], attention_mask[:, 0], token_type_ids[:, 0])
         _, stance_states = self.bert(input_ids[:, 1], attention_mask[:, 1], token_type_ids[:, 1])
         _, premise_states = self.bert(input_ids[:, 2], attention_mask[:, 2], token_type_ids[:, 2])
-    
+
         conclusion_attn = self.conclusion_attention(conclusion_states)
         stance_attn = self.stance_attention(stance_states)
         premise_attn = self.premise_attention(premise_states)
