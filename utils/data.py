@@ -6,7 +6,16 @@ import pytorch_lightning as pl
 import multiprocessing
 from torch.utils.data import WeightedRandomSampler
 
-def get_processed_df(input_df, labels_columns, tokenizer_cls_token, tokenizer_sep_token):
+def get_processed_df(input_df, labels_columns, tokenizer_sep_token):
+    df = pd.DataFrame()
+
+    df['arguments'] = input_df['Conclusion'] + tokenizer_sep_token + input_df['Stance'] + tokenizer_sep_token + input_df['Premise']
+    
+    df['labels'] = input_df[labels_columns].values.tolist()
+
+    return df
+
+def get_processed_df2(input_df, labels_columns, tokenizer_cls_token, tokenizer_sep_token):
     df = pd.DataFrame()
 
     df['arguments'] = tokenizer_cls_token + input_df['Conclusion'] + tokenizer_sep_token + input_df['Stance'] + tokenizer_sep_token + input_df['Premise']
@@ -14,7 +23,6 @@ def get_processed_df(input_df, labels_columns, tokenizer_cls_token, tokenizer_se
     df['labels'] = input_df[labels_columns].values.tolist()
 
     return df
-
 
 def format_batch_texts(language_code, batch_texts):
   
