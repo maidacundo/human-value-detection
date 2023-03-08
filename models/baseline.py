@@ -156,7 +156,8 @@ class BertBaselineClassifier(pl.LightningModule):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        outputs = self(input_ids, attention_mask, labels=labels)
+        token_type_ids = batch['token_type_ids']
+        outputs = self(input_ids, attention_mask, token_type_ids, labels=labels)
         self.log("train_loss", outputs[0], prog_bar=True, logger=True)
         
         self.losses.append(outputs[0])
