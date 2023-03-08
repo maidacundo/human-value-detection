@@ -85,7 +85,7 @@ class HumanValuesDataset(Dataset):
       arguments,
       add_special_tokens=True,
       max_length=self.max_token_len,
-      return_token_type_ids=False,
+      return_token_type_ids=True,
       padding="max_length",
       truncation=True,
       return_attention_mask=True,
@@ -96,6 +96,7 @@ class HumanValuesDataset(Dataset):
       arguments=arguments,
       input_ids=encoding["input_ids"].flatten(),
       attention_mask=encoding["attention_mask"].flatten(),
+      token_type_ids=encoding['token_type_ids'].flatten(),
       labels=torch.FloatTensor(labels)
     )
 
