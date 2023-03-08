@@ -96,7 +96,7 @@ class HumanValuesDataset(Dataset):
       arguments=arguments,
       input_ids=encoding["input_ids"].flatten(),
       attention_mask=encoding["attention_mask"].flatten(),
-      token_type_ids=encoding['token_type_ids'].flatten(),
+      token_type_ids=encoding["token_type_ids"].flatten(),
       labels=torch.FloatTensor(labels)
     )
 
