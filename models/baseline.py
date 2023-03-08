@@ -21,13 +21,8 @@ class BertBaselineClassifier(pl.LightningModule):
 
         self.bert = AutoModel.from_pretrained(model_name)
 
-        self.classifier = nn.Linear(768 * 3, num_labels)
-        self.conclusion_attention = nn.Linear(768, 1)
-        self.stance_attention = nn.Linear(768, 1)
-        self.premise_attention = nn.Linear(768, 1)
-
         self.dropout = nn.Dropout(self.classifier_dropout)
-        #self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
+        self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
         self.loss_fn = nn.BCEWithLogitsLoss()
 
@@ -42,7 +37,6 @@ class BertBaselineClassifier(pl.LightningModule):
 
         self.use_regularization = use_regularization
 
-    """
     def forward(
         self,
         input_ids=None,
@@ -93,70 +87,12 @@ class BertBaselineClassifier(pl.LightningModule):
             outputs = (loss,) + outputs
 
         return outputs  # (loss),  output, (hidden_states), (attentions)
-    """
-    def forward(self,
-            input_ids=None,
-            attention_mask=None,
-            token_type_ids=None,
-            position_ids=None,
-            head_mask=None,
-            inputs_embeds=None,
-            labels=None,
-            output_attentions=None,
-            output_hidden_states=None,
-            reg_lambda=0.01):
-
-        if token_type_ids is None:
-            token_type_ids = torch.zeros_like(input_ids)
-        # Run the BERT model and get the hidden states
-        _, conclusion_states = self.bert(input_ids[:, 0], attention_mask[:, 0], token_type_ids[:, 0])
-        _, stance_states = self.bert(input_ids[:, 1], attention_mask[:, 1], token_type_ids[:, 1])
-        _, premise_states = self.bert(input_ids[:, 2], attention_mask[:, 2], token_type_ids[:, 2])
-
-        conclusion_attn = self.conclusion_attention(conclusion_states)
-        stance_attn = self.stance_attention(stance_states)
-        premise_attn = self.premise_attention(premise_states)
-
-        # Compute softmax over the attention scores
-        conclusion_attn = torch.softmax(conclusion_attn, dim=1)
-        stance_attn = torch.softmax(stance_attn, dim=1)
-        premise_attn = torch.softmax(premise_attn, dim=1)
-
-        # Weight the hidden states by the attention scores
-        conclusion_weighted_states = torch.bmm(conclusion_attn.unsqueeze(1), conclusion_states).squeeze(1)
-        stance_weighted_states = torch.bmm(stance_attn.unsqueeze(1), stance_states).squeeze(1)
-        premise_weighted_states = torch.bmm(premise_attn.unsqueeze(1), premise_states).squeeze(1)
-
-        # Concatenate the weighted hidden states
-        concat_states = torch.cat((conclusion_weighted_states, stance_weighted_states, premise_weighted_states), dim=1)
-        concat_states = self.dropout(concat_states)
-        logits = self.classifier(concat_states)
-
-        # Calculate the loss and add L2 regularization
-        outputs = (logits,) + outputs[2:]
-        loss = 0
-        if labels is not None:
-            if self.num_labels == 1:
-                loss_fn = nn.MSELoss()
-                loss = loss_fn(logits.view(-1), labels.view(-1))
-            else:
-                loss = self.loss_fn(logits, labels)
-            if self.use_regularization:
-                l2_reg = torch.tensor(0.0).to(self.device)
-                for param in self.parameters():
-                    l2_reg += torch.linalg.vector_norm(param)
-                loss += reg_lambda * l2_reg
-            outputs = (loss,) + outputs
-
-        return outputs
-
-
+    
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
-        token_type_ids = batch["token_type_ids"]
-        outputs = self(input_ids, attention_mask, token_type_ids, labels=labels)
+        outputs = self(input_ids, attention_mask, labels=labels)
         self.log("train_loss", outputs[0], prog_bar=True, logger=True)
         
         self.losses.append(outputs[0])
