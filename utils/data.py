@@ -9,7 +9,7 @@ from torch.utils.data import WeightedRandomSampler
 def get_processed_df(input_df, labels_columns, tokenizer_cls_token, tokenizer_sep_token):
     df = pd.DataFrame()
 
-    df['arguments'] = tokenizer_cls_token + input_df['Conclusion'] + tokenizer_sep_token + tokenizer_cls_token + input_df['Stance'] + tokenizer_sep_token + tokenizer_cls_token + input_df['Premise']
+    df['arguments'] = input_df['Conclusion'] + tokenizer_sep_token + input_df['Stance'] + tokenizer_sep_token + input_df['Premise']
     
     df['labels'] = input_df[labels_columns].values.tolist()
 

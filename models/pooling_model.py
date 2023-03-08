@@ -26,6 +26,9 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
+
+        self.pooling_dense = nn.Linear(self.config.hidden_size, self.config.hidden_size)
+        self.pooling_activation = nn.Tanh()
         
         self.loss_fn = nn.BCEWithLogitsLoss()
 
@@ -133,7 +136,7 @@ class TransformerClassifierPooling(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
+        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=0.01)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,

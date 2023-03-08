@@ -126,7 +126,7 @@ class BertClassifierTransferLearning(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
+        optimizer = self.optim([p for p in self.parameters() if p.requires_grad], lr=self.lr, weight_decay=1e-5)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
