@@ -108,7 +108,7 @@ class BertBaselineClassifier(pl.LightningModule):
 
         print(input_ids[:,0])
         print(attention_mask[:,0])
-        print(token_type_ids[:,0])
+        print(token_type_ids)
         # Run the BERT model and get the hidden states
         _, conclusion_states = self.bert(input_ids[:, 0], attention_mask[:, 0], token_type_ids[:, 0])
         _, stance_states = self.bert(input_ids[:, 1], attention_mask[:, 1], token_type_ids[:, 1])
@@ -157,8 +157,6 @@ class BertBaselineClassifier(pl.LightningModule):
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
         token_type_ids = batch["token_type_ids"]
-        print(token_type_ids)
-        print('ooook')
         outputs = self(input_ids, attention_mask, token_type_ids, labels=labels)
         self.log("train_loss", outputs[0], prog_bar=True, logger=True)
         
