@@ -21,7 +21,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = AutoModel.from_pretrained(model_name)
-        self.lstm = nn.LSTM(self.config.hidden_size, self.config.hidden_size, batch_first=True, bidirectional=False)
+        self.lstm = nn.LSTM(self.config.hidden_size, self.config.num_labels, batch_first=True, bidirectional=False, dropout=classifier_dropout)
         self.avg_pooling = nn.AdaptiveAvgPool1d(1)
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(classifier_dropout)
@@ -77,12 +77,11 @@ class TransformerClassifierPooling(pl.LightningModule):
 
         max_pooling = self.max_pooling(lstm_output)
         max_pooling = max_pooling.view(max_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
+        
+        pooled_output = self.dropout(pooled_output)
+        pooled_output = self.classifier(pooled_output)
 
-        sum_output = pooled_output + max_pooling + avg_pooling
-
-        sum_output = self.dropout(sum_output)
-
-        logits = self.classifier(sum_output)
+        logits = pooled_output + max_pooling + avg_pooling
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         loss = 0
