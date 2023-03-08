@@ -106,9 +106,8 @@ class BertBaselineClassifier(pl.LightningModule):
             output_hidden_states=None,
             reg_lambda=0.01):
 
-        print(input_ids[:,0])
-        print(attention_mask[:,0])
-        print(token_type_ids)
+        if token_type_ids is None:
+            token_type_ids = torch.zeros_like(input_ids)
         # Run the BERT model and get the hidden states
         _, conclusion_states = self.bert(input_ids[:, 0], attention_mask[:, 0], token_type_ids[:, 0])
         _, stance_states = self.bert(input_ids[:, 1], attention_mask[:, 1], token_type_ids[:, 1])
