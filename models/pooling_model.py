@@ -6,12 +6,13 @@ import torchmetrics
 import torch.nn.functional as F
 
 class TransformerClassifierPooling(pl.LightningModule):
-    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None):
+    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, num_lstm_layers=1, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
 
         self.optim = optimizer
         self.lr = lr
         self.classifier_dropout = classifier_dropout
+        self.num_lstm_layers = num_lstm_layers
 
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
@@ -21,11 +22,14 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = AutoModel.from_pretrained(model_name)
-        self.lstm = nn.LSTM(self.config.hidden_size, self.config.hidden_size, batch_first=True, bidirectional=False)
+        self.lstm = nn.LSTM(self.config.hidden_size, self.config.num_labels, batch_first=True, bidirectional=False, dropout=classifier_dropout, num_layers=self.num_lstm_layers)
         self.avg_pooling = nn.AdaptiveAvgPool1d(1)
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
+
+        # self.pooling_dense = nn.Linear(self.config.num_labels, self.config.num_labels)
+        # self.pooling_activation = nn.Tanh()
         
         self.loss_fn = nn.BCEWithLogitsLoss()
 
@@ -74,12 +78,19 @@ class TransformerClassifierPooling(pl.LightningModule):
 
         max_pooling = self.max_pooling(lstm_output)
         max_pooling = max_pooling.view(max_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
+        
+        pooled_output = self.dropout(pooled_output)
+        pooled_output = self.classifier(pooled_output)
 
-        sum_output = pooled_output + max_pooling + avg_pooling
+        # avg_pooling = self.pooling_dense(avg_pooling)
+        # avg_pooling = self.pooling_activation(avg_pooling)
+        avg_pooling = self.dropout(avg_pooling)
 
-        sum_output = self.dropout(sum_output)
+        # max_pooling = self.pooling_dense(max_pooling)
+        # max_pooling = self.pooling_activation(max_pooling)
+        max_pooling = self.dropout(max_pooling)
 
-        logits = self.classifier(sum_output)
+        logits = pooled_output + max_pooling + avg_pooling
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         loss = 0
@@ -133,7 +144,7 @@ class TransformerClassifierPooling(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
+        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=0.01)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
