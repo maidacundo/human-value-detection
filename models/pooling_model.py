@@ -6,12 +6,13 @@ import torchmetrics
 import torch.nn.functional as F
 
 class TransformerClassifierPooling(pl.LightningModule):
-    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None):
+    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, num_lstm_layers=1, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
 
         self.optim = optimizer
         self.lr = lr
         self.classifier_dropout = classifier_dropout
+        self.num_lstm_layers = num_lstm_layers
 
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
@@ -21,7 +22,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = AutoModel.from_pretrained(model_name)
-        self.lstm = nn.LSTM(self.config.hidden_size, self.config.num_labels, batch_first=True, bidirectional=False, dropout=classifier_dropout, num_layers=2)
+        self.lstm = nn.LSTM(self.config.hidden_size, self.config.num_labels, batch_first=True, bidirectional=False, dropout=classifier_dropout, num_layers=self.num_lstm_layers)
         self.avg_pooling = nn.AdaptiveAvgPool1d(1)
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(classifier_dropout)
