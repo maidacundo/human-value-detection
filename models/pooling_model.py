@@ -28,8 +28,8 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
-        self.pooling_dense = nn.Linear(self.config.num_labels, self.config.num_labels)
-        self.pooling_activation = nn.Tanh()
+        # self.pooling_dense = nn.Linear(self.config.num_labels, self.config.num_labels)
+        # self.pooling_activation = nn.Tanh()
         
         self.loss_fn = nn.BCEWithLogitsLoss()
 
@@ -82,12 +82,12 @@ class TransformerClassifierPooling(pl.LightningModule):
         pooled_output = self.dropout(pooled_output)
         pooled_output = self.classifier(pooled_output)
 
-        avg_pooling = self.pooling_dense(avg_pooling)
-        avg_pooling = self.pooling_activation(avg_pooling)
+        # avg_pooling = self.pooling_dense(avg_pooling)
+        # avg_pooling = self.pooling_activation(avg_pooling)
         avg_pooling = self.dropout(avg_pooling)
 
-        max_pooling = self.pooling_dense(max_pooling)
-        max_pooling = self.pooling_activation(max_pooling)
+        # max_pooling = self.pooling_dense(max_pooling)
+        # max_pooling = self.pooling_activation(max_pooling)
         max_pooling = self.dropout(max_pooling)
 
         logits = pooled_output + max_pooling + avg_pooling
