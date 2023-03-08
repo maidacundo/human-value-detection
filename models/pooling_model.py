@@ -93,7 +93,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         # max_pooling = self.pooling_activation(max_pooling)
         max_pooling = self.dropout(max_pooling)
 
-        logits = pooled_output + max_pooling + avg_pooling
+        logits = pooled_output + (0.5 * max_pooling) + (0.5 * avg_pooling)
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         loss = 0
