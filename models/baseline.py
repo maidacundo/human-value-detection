@@ -21,13 +21,12 @@ class BertBaselineClassifier(pl.LightningModule):
 
         self.bert = AutoModel.from_pretrained(model_name)
 
-        self.classifier = nn.Linear(768 * 3, num_labels)
-        self.conclusion_attention = nn.Linear(768, 1)
-        self.stance_attention = nn.Linear(768, 1)
-        self.premise_attention = nn.Linear(768, 1)
+        self.conclusion_attention = nn.Linear(self.config.hidden_size, 1)
+        self.stance_attention = nn.Linear(self.config.hidden_size, 1)
+        self.premise_attention = nn.Linear(self.config.hidden_size, 1)
 
         self.dropout = nn.Dropout(self.classifier_dropout)
-        #self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
+        self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
 
         self.loss_fn = nn.BCEWithLogitsLoss()
 
@@ -107,29 +106,30 @@ class BertBaselineClassifier(pl.LightningModule):
             reg_lambda=0.01):
     
         # Run the BERT model and get the hidden states
+        outputs = self.bert(input_ids=input_ids,
+                            attention_mask=attention_mask,
+                            token_type_ids=token_type_ids,
+                            position_ids=position_ids,
+                            head_mask=head_mask,
+                            inputs_embeds=inputs_embeds,
+                            output_attentions=output_attentions,
+                            output_hidden_states=True)
         
-        _, conclusion_states = self.bert(input_ids[:, 0], attention_mask[:, 0], token_type_ids[:, 0])
-        _, stance_states = self.bert(input_ids[:, 1], attention_mask[:, 1], token_type_ids[:, 1])
-        _, premise_states = self.bert(input_ids[:, 2], attention_mask[:, 2], token_type_ids[:, 2])
+        # Separate attention mechanisms for each part
+        conclusion_attention_weights = torch.softmax(self.conclusion_attention(outputs.last_hidden_state), dim=1)
+        conclusion_rep = torch.sum(conclusion_attention_weights * outputs.last_hidden_state, dim=1)
 
-        conclusion_attn = self.conclusion_attention(conclusion_states)
-        stance_attn = self.stance_attention(stance_states)
-        premise_attn = self.premise_attention(premise_states)
+        stance_attention_weights = torch.softmax(self.stance_attention(outputs.last_hidden_state), dim=1)
+        stance_rep = torch.sum(stance_attention_weights * outputs.last_hidden_state, dim=1)
 
-        # Compute softmax over the attention scores
-        conclusion_attn = torch.softmax(conclusion_attn, dim=1)
-        stance_attn = torch.softmax(stance_attn, dim=1)
-        premise_attn = torch.softmax(premise_attn, dim=1)
+        premise_attention_weights = torch.softmax(self.premise_attention(outputs.last_hidden_state), dim=1)
+        premise_rep = torch.sum(premise_attention_weights * outputs.last_hidden_state, dim=1)
 
-        # Weight the hidden states by the attention scores
-        conclusion_weighted_states = torch.bmm(conclusion_attn.unsqueeze(1), conclusion_states).squeeze(1)
-        stance_weighted_states = torch.bmm(stance_attn.unsqueeze(1), stance_states).squeeze(1)
-        premise_weighted_states = torch.bmm(premise_attn.unsqueeze(1), premise_states).squeeze(1)
+        # concatenate the representations of the three parts
+        pooled_output = torch.cat([conclusion_rep, stance_rep, premise_rep], dim=1)
 
-        # Concatenate the weighted hidden states
-        concat_states = torch.cat((conclusion_weighted_states, stance_weighted_states, premise_weighted_states), dim=1)
-        concat_states = self.dropout(concat_states)
-        logits = self.classifier(concat_states)
+        pooled_output = self.dropout(pooled_output)
+        logits = self.classifier(pooled_output)
 
         # Calculate the loss and add L2 regularization
         outputs = (logits,) + outputs[2:]
