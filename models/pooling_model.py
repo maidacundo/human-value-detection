@@ -37,6 +37,9 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
         if isinstance(self.classifier, nn.Linear) and self.classifier.bias is not None:
             self.classifier.bias.data.zero_()
+        
+        for param in self.bert.parameters():
+            param.requires_grad = False
 
         self.losses = []
         self.val_losses = []
@@ -57,7 +60,13 @@ class TransformerClassifierPooling(pl.LightningModule):
 
         outputs = self.bert(
             input_ids,
-            attention_mask=attention_mask
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids,
+            position_ids=position_ids,
+            head_mask=head_mask,
+            inputs_embeds=inputs_embeds,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
         )
 
         pooled_output = outputs.pooler_output
