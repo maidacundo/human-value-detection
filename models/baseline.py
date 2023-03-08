@@ -128,9 +128,9 @@ class BertBaselineClassifier(pl.LightningModule):
         premise_attn = torch.softmax(self.premise_attention(premise_states), dim=1)
         print(conclusion_attn.shape)
         # Weight the hidden states by the attention scores
-        conclusion_weighted_states = torch.bmm(conclusion_attn.unsqueeze(1), conclusion_states).squeeze(1)
-        stance_weighted_states = torch.bmm(stance_attn.unsqueeze(1), stance_states).squeeze(1)
-        premise_weighted_states = torch.bmm(premise_attn.unsqueeze(1), premise_states).squeeze(1)
+        conclusion_weighted_states = torch.bmm(conclusion_attn.unsqueeze(1), conclusion_states.unsqueeze(1)).squeeze(1)
+        stance_weighted_states = torch.bmm(stance_attn.unsqueeze(1), stance_states.unsqueeze(1)).squeeze(1)
+        premise_weighted_states = torch.bmm(premise_attn.unsqueeze(1), premise_states.unsqueeze(1)).squeeze(1)
         
         # Concatenate the weighted hidden states
         concatenated_states = torch.cat([conclusion_weighted_states, stance_weighted_states, premise_weighted_states], dim=1)
