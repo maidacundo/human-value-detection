@@ -21,7 +21,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = AutoModel.from_pretrained(model_name)
-        self.lstm = nn.LSTM(self.config.hidden_size, self.config.num_labels, batch_first=True, bidirectional=False, dropout=classifier_dropout)
+        self.lstm = nn.LSTM(self.config.hidden_size, self.config.num_labels, batch_first=True, bidirectional=False, dropout=classifier_dropout, num_layers=1)
         self.avg_pooling = nn.AdaptiveAvgPool1d(1)
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(classifier_dropout)
@@ -83,9 +83,11 @@ class TransformerClassifierPooling(pl.LightningModule):
 
         avg_pooling = self.pooling_dense(avg_pooling)
         avg_pooling = self.pooling_activation(avg_pooling)
+        avg_pooling = self.dropout(avg_pooling)
 
         max_pooling = self.pooling_dense(max_pooling)
         max_pooling = self.pooling_activation(max_pooling)
+        max_pooling = self.dropout(max_pooling)
 
         logits = pooled_output + max_pooling + avg_pooling
 
