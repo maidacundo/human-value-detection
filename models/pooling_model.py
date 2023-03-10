@@ -37,6 +37,9 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
         if isinstance(self.classifier, nn.Linear) and self.classifier.bias is not None:
             self.classifier.bias.data.zero_()
+        
+        for param in self.bert.parameters():
+            param.requires_grad = False
 
         self.losses = []
         self.val_losses = []
@@ -144,7 +147,13 @@ class TransformerClassifierPooling(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=0.01)
+        optimizer = self.optim([
+                                    {"params": self.bert.parameters(), "lr": 5e-5},
+                                    {"params": self.lstm.parameters(), "lr": 1e-3},
+                                    {"params": self.classifier.parameters(), "lr": 1e-3},
+                                ],
+                                lr=self.lr, 
+                                weight_decay=0.01)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
