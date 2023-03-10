@@ -148,7 +148,7 @@ class TransformerClassifierPooling(pl.LightningModule):
     def configure_optimizers(self):
 
         optimizer = self.optim([
-                                    {"params": self.bert.parameters(), "lr": 2e-5},
+                                    {"params": self.bert.parameters(), "lr": 5e-5},
                                     {"params": self.lstm.parameters(), "lr": 1e-3},
                                     {"params": self.classifier.parameters(), "lr": 1e-3},
                                 ],
