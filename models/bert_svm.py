@@ -21,7 +21,7 @@ class BertSVMmodel(pl.LightningModule):
                 attention_mask=attention_mask
         )
 
-        embeddings = outputs[0][:,0,:]
+        embeddings = outputs.pooler_output#outputs[0][:,0,:]
 
         return embeddings 
     
