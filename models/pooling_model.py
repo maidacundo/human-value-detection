@@ -147,7 +147,13 @@ class TransformerClassifierPooling(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=0.01)
+        optimizer = self.optim([
+                                    {"params": self.bert.parameters(), "lr": 2e-5},
+                                    {"params": self.lstm.parameters(), "lr": 1e-3},
+                                    {"params": self.classifier.parameters(), "lr": 1e-3},
+                                ],
+                                lr=self.lr, 
+                                weight_decay=0.01)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
