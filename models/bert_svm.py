@@ -20,10 +20,11 @@ class BertSVMmodel(pl.LightningModule):
                 input_ids,
                 attention_mask=attention_mask
         )
+        
+        cls = outputs[0][:,0,:]
+        pooler = outputs.pooler_output
 
-        embeddings = outputs[0][:,0,:]
-
-        return embeddings 
+        return cls, pooler
     
     def predict_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
