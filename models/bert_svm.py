@@ -29,6 +29,6 @@ class BertSVMmodel(pl.LightningModule):
     def predict_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
-        outputs = self(input_ids, attention_mask)
+        cls, pooler = self(input_ids, attention_mask)
 
-        return outputs
+        return cls, pooler
