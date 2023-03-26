@@ -4,12 +4,15 @@ from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_
 import torch.nn as nn
 import torchmetrics
 
-class BertBaselineClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr, n_training_steps=None, n_warmup_steps=None, use_regularization=True):
+class BertClassifier(pl.LightningModule):
+    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr_transformer=2e-5, lr_classifier=1e-3, weight_decay=1e-5, n_training_steps=None, n_warmup_steps=None, use_regularization=True):
         super().__init__()
 
         self.optim = optimizer
-        self.lr = lr
+        self.lr_transformer = lr_transformer
+        self.lr_classifier = lr_classifier
+        self.weight_decay = weight_decay
+        
         self.classifier_dropout = classifier_dropout
 
         self.num_labels = num_labels
@@ -62,7 +65,6 @@ class BertBaselineClassifier(pl.LightningModule):
             output_hidden_states=output_hidden_states,
         )
 
-        # verificare che cos'è il pooled output (in realtà conviene verificare che cos'è tutto l'output)
         pooled_output = outputs.pooler_output
 
         pooled_output = self.dropout(pooled_output)
@@ -126,7 +128,13 @@ class BertBaselineClassifier(pl.LightningModule):
 
     def configure_optimizers(self):
 
-        optimizer = self.optim(self.parameters(), lr=self.lr, weight_decay=1e-5)
+        optimizer = self.optim([
+                                    {"params": self.bert.parameters(), "lr": self.lr_transformer},
+                                    {"params": self.classifier.parameters(), "lr": self.lr_classifier},
+                                ],
+                                lr=self.lr_transformer, 
+                                weight_decay=self.weight_decay,
+                                )
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,

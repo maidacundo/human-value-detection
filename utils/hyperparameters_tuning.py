@@ -16,20 +16,18 @@ class HyperparameterTuner:
         self.study = None
 
     def objective(self, trial: optuna.Trial):
-        lr = trial.suggest_float("lr", 1e-6, 9e-5)
-        batch_size = trial.suggest_categorical("batch_size", [8])
+        lr_transformer = trial.suggest_categorical("lr_transformer", [1e-5, 2e-5, 5e-5])
+        lr_classifier = trial.suggest_categorical("lr_classifier", [1e-5, 2e-5, 5e-5])
         optimizer = torch.optim.AdamW
         classifier_dropout = trial.suggest_categorical("classifier_dropout", [.1, .2, .3])
 
-        self.data_module.batch_size=batch_size
-        self.data_module.setup()
-
         self.model.optim = optimizer
-        self.model.lr = lr
+        self.model.lr_transformer = lr_transformer
+        self.model.lr_classifier = lr_classifier
         self.model.classifier_dropout = classifier_dropout
 
 
-        early_stopping_callback = EarlyStopping(monitor='val_loss', patience=3)
+        early_stopping_callback = EarlyStopping(monitor='val_loss', patience=1)
 
         trainer = pl.Trainer(
             callbacks=[early_stopping_callback],
