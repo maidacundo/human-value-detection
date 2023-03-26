@@ -30,8 +30,7 @@ class HyperparameterTuner:
             max_epochs=self.n_epochs,
             limit_train_batches=self.lim_train_batches,
             limit_val_batches=self.lim_val_batches,
-            accelerator='gpu',
-            devices=1
+            accelerator='gpu'
         )
 
         model = self.partial_model(classifier_dropout=classifier_dropout, 
@@ -47,13 +46,14 @@ class HyperparameterTuner:
         if trial.should_prune():
             raise optuna.TrialPruned()
         
+        del model
         torch.cuda.empty_cache()
 
         return value
 
     def run_study(self):
         self.study = optuna.create_study(direction="minimize")
-        self.study.optimize(self.objective, n_trials=self.n_trials)
+        self.study.optimize(self.objective, n_trials=self.n_trials, gc_after_trial=True)
 
     def get_best_hyperparams(self):
         if self.study is None:
