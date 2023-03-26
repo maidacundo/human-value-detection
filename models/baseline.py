@@ -4,8 +4,8 @@ from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_
 import torch.nn as nn
 import torchmetrics
 
-class BertClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr_transformer=2e-5, lr_classifier=1e-3, weight_decay=1e-5, n_training_steps=None, n_warmup_steps=None, use_regularization=True):
+class TransformerClassifier(pl.LightningModule):
+    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr_transformer=2e-5, lr_classifier=1e-3, weight_decay=1e-5, n_training_steps=None, n_warmup_steps=None):
         super().__init__()
 
         self.optim = optimizer
@@ -38,8 +38,6 @@ class BertClassifier(pl.LightningModule):
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
 
-        self.use_regularization = use_regularization
-
     def forward(
         self,
         input_ids=None,
@@ -50,8 +48,7 @@ class BertClassifier(pl.LightningModule):
         inputs_embeds=None,
         labels=None,
         output_attentions=None,
-        output_hidden_states=None,
-        reg_lambda=0.01
+        output_hidden_states=None
     ):
 
         outputs = self.bert(
@@ -79,12 +76,6 @@ class BertClassifier(pl.LightningModule):
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
                 loss = self.loss_fn(logits, labels)
-            # calculate L2 regularization term and add it to the loss
-            if self.use_regularization:
-                l2_reg = torch.tensor(0.0).to(self.device)
-                for param in self.parameters():
-                    l2_reg += torch.linalg.vector_norm(param)
-                loss += reg_lambda * l2_reg
 
             outputs = (loss,) + outputs
 

@@ -18,6 +18,7 @@ class HyperparameterTuner:
     def objective(self, trial: optuna.Trial):
         lr_transformer = trial.suggest_categorical("lr_transformer", [1e-5, 2e-5, 5e-5])
         lr_classifier = trial.suggest_categorical("lr_classifier", [1e-5, 2e-5, 5e-5])
+        weight_decay = trial.suggest_categorical("weight_decay", [1e-5, 1e-4, 1e-3])
         optimizer = torch.optim.AdamW
         classifier_dropout = trial.suggest_categorical("classifier_dropout", [.1, .2, .3])
 
@@ -25,6 +26,7 @@ class HyperparameterTuner:
         self.model.lr_transformer = lr_transformer
         self.model.lr_classifier = lr_classifier
         self.model.classifier_dropout = classifier_dropout
+        self.model.weight_decay = weight_decay
 
 
         early_stopping_callback = EarlyStopping(monitor='val_loss', patience=1)
