@@ -3,11 +3,12 @@ import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks import EarlyStopping
 
+
 class HyperparameterTuner:
-    def __init__(self, data_module, model, study_params):
+    def __init__(self, data_module, partial_model, study_params):
         
         self.data_module = data_module
-        self.model = model
+        self.partial_model = partial_model
 
         self.n_trials = study_params["n_trials"]
         self.n_epochs = study_params["n_epochs"]
@@ -19,14 +20,7 @@ class HyperparameterTuner:
         lr_transformer = trial.suggest_categorical("lr_transformer", [1e-5, 2e-5, 5e-5])
         lr_classifier = trial.suggest_categorical("lr_classifier", [1e-5, 1e-4, 1e-3])
         weight_decay = trial.suggest_categorical("weight_decay", [1e-5, 1e-4, 1e-3])
-        optimizer = torch.optim.AdamW
         classifier_dropout = trial.suggest_categorical("classifier_dropout", [.1, .2, .3])
-
-        self.model.optim = optimizer
-        self.model.lr_transformer = lr_transformer
-        self.model.lr_classifier = lr_classifier
-        self.model.classifier_dropout = classifier_dropout
-        self.model.weight_decay = weight_decay
 
 
         early_stopping_callback = EarlyStopping(monitor='val_loss', patience=1)
@@ -40,11 +34,20 @@ class HyperparameterTuner:
             devices=1
         )
 
-        trainer.fit(self.model, self.data_module)
+        model = self.partial_model(classifier_dropout=classifier_dropout, 
+                                    optimizer=torch.optim.AdamW, 
+                                    lr_transformer=lr_transformer, 
+                                    lr_classifier=lr_classifier, 
+                                    weight_decay=weight_decay,
+                                    )
+
+        trainer.fit(model, self.data_module)
         value = trainer.callback_metrics["val_loss"].item()
 
         if trial.should_prune():
             raise optuna.TrialPruned()
+        
+        torch.cuda.empty_cache()
 
         return value
 
