@@ -17,10 +17,10 @@ class HyperparameterTuner:
         self.study = None
 
     def objective(self, trial: optuna.Trial):
-        lr_transformer = trial.suggest_categorical("lr_transformer", [1e-5, 2e-5, 5e-5])
-        lr_classifier = trial.suggest_categorical("lr_classifier", [1e-5, 1e-4, 1e-3])
-        weight_decay = trial.suggest_categorical("weight_decay", [1e-5, 1e-4, 1e-3])
-        classifier_dropout = trial.suggest_categorical("classifier_dropout", [.1, .2, .3])
+        lr_transformer = trial.suggest_categorical("lr_transformer", [2e-5, 5e-5])
+        lr_classifier = trial.suggest_categorical("lr_classifier", [1e-4, 1e-3])
+        weight_decay = trial.suggest_categorical("weight_decay", [1e-5, 1e-4])
+        classifier_dropout = trial.suggest_categorical("classifier_dropout", [.1, .3])
 
 
         early_stopping_callback = EarlyStopping(monitor='val_loss', patience=1)
