@@ -5,7 +5,18 @@ import torch.nn as nn
 import torchmetrics
 
 class TransformerClassifier(pl.LightningModule):
-    def __init__(self, model_name, num_labels, classifier_dropout, optimizer, lr_transformer=2e-5, lr_classifier=1e-3, weight_decay=1e-5, n_training_steps=None, n_warmup_steps=None):
+    def __init__(
+            self, 
+            model_name, 
+            num_labels, 
+            classifier_dropout, 
+            optimizer, 
+            lr_transformer=2e-5, 
+            lr_classifier=1e-3, 
+            weight_decay=1e-5, 
+            n_training_steps=None, 
+            n_warmup_steps=None
+        ):
         super().__init__()
 
         self.optim = optimizer
@@ -76,7 +87,6 @@ class TransformerClassifier(pl.LightningModule):
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
                 loss = self.loss_fn(logits, labels)
-
             outputs = (loss,) + outputs
 
         return outputs  # (loss),  output, (hidden_states), (attentions)

@@ -6,12 +6,26 @@ import torchmetrics
 import torch.nn.functional as F
 
 class TransformerClassifierPooling(pl.LightningModule):
-    def __init__(self,model_name, num_labels, classifier_dropout, optimizer, lr, num_lstm_layers=1, n_training_steps=None, n_warmup_steps=None):
+    def __init__(
+            self, 
+            model_name, 
+            num_labels, 
+            classifier_dropout, 
+            optimizer, 
+            transfer_learning=False,
+            lr_transformer=2e-5, 
+            lr_classifier=1e-3, 
+            weight_decay=1e-5, 
+            num_lstm_layers=1,
+            n_training_steps=None, 
+            n_warmup_steps=None
+        ):
         super().__init__()
 
         self.optim = optimizer
-        self.lr = lr
-        self.classifier_dropout = classifier_dropout
+        self.lr_transformer = lr_transformer
+        self.lr_classifier = lr_classifier
+        self.weight_decay = weight_decay
         self.num_lstm_layers = num_lstm_layers
 
         self.num_labels = num_labels
@@ -38,8 +52,9 @@ class TransformerClassifierPooling(pl.LightningModule):
         if isinstance(self.classifier, nn.Linear) and self.classifier.bias is not None:
             self.classifier.bias.data.zero_()
         
-        for param in self.bert.parameters():
-            param.requires_grad = False
+        if transfer_learning:
+            for param in self.bert.parameters():
+                param.requires_grad = False
 
         self.losses = []
         self.val_losses = []
@@ -99,7 +114,6 @@ class TransformerClassifierPooling(pl.LightningModule):
         loss = 0
         if labels is not None:
             if self.num_labels == 1:
-                #  We are doing regression
                 loss_fn = nn.MSELoss()
                 loss = loss_fn(logits.view(-1), labels.view(-1))
             else:
@@ -148,12 +162,12 @@ class TransformerClassifierPooling(pl.LightningModule):
     def configure_optimizers(self):
 
         optimizer = self.optim([
-                                    {"params": self.bert.parameters(), "lr": 5e-5},
-                                    {"params": self.lstm.parameters(), "lr": 1e-3},
-                                    {"params": self.classifier.parameters(), "lr": 1e-3},
+                                    {"params": self.bert.parameters(), "lr": self.lr_transformer},
+                                    {"params": self.lstm.parameters(), "lr": self.lr_classifier},
+                                    {"params": self.classifier.parameters(), "lr": self.lr_classifier},
                                 ],
                                 lr=self.lr, 
-                                weight_decay=0.01)
+                                weight_decay=self.weight_decay)
 
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
