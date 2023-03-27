@@ -166,7 +166,7 @@ class TransformerClassifierPooling(pl.LightningModule):
                                     {"params": self.lstm.parameters(), "lr": self.lr_classifier},
                                     {"params": self.classifier.parameters(), "lr": self.lr_classifier},
                                 ],
-                                lr=self.lr, 
+                                lr=self.lr_transformer, 
                                 weight_decay=self.weight_decay)
 
         scheduler = get_linear_schedule_with_warmup(
