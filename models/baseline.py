@@ -15,7 +15,8 @@ class TransformerClassifier(pl.LightningModule):
             lr_classifier=1e-3, 
             weight_decay=1e-5, 
             n_training_steps=None, 
-            n_warmup_steps=None
+            n_warmup_steps=None,
+            use_pooler=True,
         ):
         super().__init__()
 
@@ -48,6 +49,7 @@ class TransformerClassifier(pl.LightningModule):
         self.losses = []
         self.val_losses = []
         self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
+        self.use_pooler = use_pooler
 
     def forward(
         self,
@@ -72,9 +74,14 @@ class TransformerClassifier(pl.LightningModule):
             output_attentions=output_attentions,
             output_hidden_states=output_hidden_states,
         )
-
-        pooled_output = outputs.pooler_output
-
+        
+        if self.use_pooler:
+            pooled_output = outputs.pooler_output
+        else:
+            last_hidden_state = outputs[0]
+            input_mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
+            last_hidden_state[input_mask_expanded == 0] = -1e9  # Set padding tokens to large negative value
+            pooled_output = torch.max(last_hidden_state, 1)[0]
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
