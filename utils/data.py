@@ -15,10 +15,10 @@ def get_processed_df(input_df, labels_columns, tokenizer_sep_token):
 
     return df
 
-def get_processed_df2(input_df, labels_columns, tokenizer_cls_token, tokenizer_sep_token):
+def get_processed_df2(input_df, labels_columns):
     df = pd.DataFrame()
 
-    df['arguments'] = tokenizer_cls_token + ' ' + input_df['Conclusion'] + ' ' + tokenizer_sep_token + ' ' + input_df['Stance'] + ' ' + tokenizer_sep_token + ' ' + input_df['Premise']
+    df['arguments'] = input_df['Premise']
     
     df['labels'] = input_df[labels_columns].values.tolist()
 
