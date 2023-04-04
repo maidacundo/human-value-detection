@@ -170,6 +170,7 @@ class TransformerClassifierPooling(pl.LightningModule):
                                     {"params": self.bert.parameters(), "lr": self.lr_transformer},
                                     {"params": self.lstm.parameters(), "lr": self.lr_classifier},
                                     {"params": self.classifier.parameters(), "lr": self.lr_classifier},
+                                    {"params": self.classifier_pooling.parameters(), "lr": self.lr_classifier},
                                 ],
                                 lr=self.lr_transformer, 
                                 weight_decay=self.weight_decay)
