@@ -1,6 +1,6 @@
 import torch
 import pytorch_lightning as pl
-from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoConfig, AutoModel, get_linear_schedule_with_warmup
 import torch.nn as nn
 import torchmetrics
 import torch.nn.functional as F
@@ -41,6 +41,8 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.max_pooling = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
+        self.relu = nn.ReLU()
+        self.classifier_pooling = nn.Linear(self.config.num_labels * 3, self.config.num_labels)
 
         # self.pooling_dense = nn.Linear(self.config.num_labels, self.config.num_labels)
         # self.pooling_activation = nn.Tanh()
@@ -99,6 +101,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         
         pooled_output = self.dropout(pooled_output)
         pooled_output = self.classifier(pooled_output)
+        pooled_output = self.relu(pooled_output)
 
         # avg_pooling = self.pooling_dense(avg_pooling)
         # avg_pooling = self.pooling_activation(avg_pooling)
@@ -108,7 +111,9 @@ class TransformerClassifierPooling(pl.LightningModule):
         # max_pooling = self.pooling_activation(max_pooling)
         max_pooling = self.dropout(max_pooling)
 
-        logits = pooled_output + 0.5 * max_pooling + 0.5 * avg_pooling
+        logits = torch.cat((pooled_output, max_pooling, avg_pooling), dim=1)
+
+        logits = self.classifier_pooling(logits)
 
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         loss = 0
