@@ -59,8 +59,8 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.losses = []
         self.val_losses = []
         self.metrics = nn.ModuleDict({
-            'accuracy': torchmetrics.Accuracy(task="multilabel", num_labels=num_labels, threshold=0.25),
-            'f1': torchmetrics.F1Score(task="multilabel", num_labels=num_labels, average='macro', threshold=0.25)
+            'accuracy': torchmetrics.Accuracy(task="multilabel", num_labels=num_labels, threshold=.5),
+            'f1': torchmetrics.F1Score(task="multilabel", num_labels=num_labels, average='macro', threshold=.5)
         })
 
     def forward(
@@ -194,3 +194,4 @@ class TransformerClassifierPooling(pl.LightningModule):
                 interval='step'
             )
         )
+    
