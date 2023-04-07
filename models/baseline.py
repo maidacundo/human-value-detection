@@ -17,7 +17,6 @@ class TransformerClassifier(pl.LightningModule):
             weight_decay=1e-5, 
             n_training_steps=None, 
             n_warmup_steps=None,
-            use_pooler=True,
         ):
         super().__init__()
 
