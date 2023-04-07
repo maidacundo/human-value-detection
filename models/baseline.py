@@ -11,6 +11,7 @@ class TransformerClassifier(pl.LightningModule):
             num_labels, 
             classifier_dropout, 
             optimizer, 
+            transfer_learning=False,
             lr_transformer=2e-5, 
             lr_classifier=1e-3, 
             weight_decay=1e-5, 
@@ -46,10 +47,16 @@ class TransformerClassifier(pl.LightningModule):
         if isinstance(self.classifier, nn.Linear) and self.classifier.bias is not None:
             self.classifier.bias.data.zero_()
 
+        if transfer_learning:
+            for param in self.bert.parameters():
+                param.requires_grad = False
+
         self.losses = []
         self.val_losses = []
-        self.accuracy = torchmetrics.Accuracy(task="multiclass", num_classes=num_labels)
-        self.use_pooler = use_pooler
+        self.metrics = nn.ModuleDict({
+            'accuracy': torchmetrics.Accuracy(task="multilabel", num_labels=num_labels, threshold=.5),
+            'f1': torchmetrics.F1Score(task="multilabel", num_labels=num_labels, average='macro', threshold=.5)
+        })
 
     def forward(
         self,
@@ -75,13 +82,8 @@ class TransformerClassifier(pl.LightningModule):
             output_hidden_states=output_hidden_states,
         )
         
-        if self.use_pooler:
-            pooled_output = outputs.pooler_output
-        else:
-            last_hidden_state = outputs[0]
-            input_mask_expanded = attention_mask.unsqueeze(-1).expand(last_hidden_state.size()).float()
-            last_hidden_state[input_mask_expanded == 0] = -1e9  # Set padding tokens to large negative value
-            pooled_output = torch.max(last_hidden_state, 1)[0]
+        pooled_output = outputs.pooler_output
+
         pooled_output = self.dropout(pooled_output)
         logits = self.classifier(pooled_output)
 
@@ -98,6 +100,13 @@ class TransformerClassifier(pl.LightningModule):
 
         return outputs  # (loss),  output, (hidden_states), (attentions)
     
+    def compute_metrics(self, out, batch):
+        labels = batch["labels"]
+        metrics = {}
+        for name, metric in self.metrics.items():
+            metrics[name] = metric(out, labels)
+        return metrics
+
     def training_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
@@ -107,17 +116,20 @@ class TransformerClassifier(pl.LightningModule):
         
         self.losses.append(outputs[0])
         return {"loss": outputs[0], "predictions": torch.sigmoid(outputs[1]), "labels": labels}
-
+    
     def validation_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
         labels = batch["labels"]
         outputs = self(input_ids, attention_mask, labels=labels)
         loss = outputs[0]
-        self.log("val_loss", loss, prog_bar=True, logger=True)
+        preds = torch.sigmoid(outputs[1])
+        metrics = self.compute_metrics(preds, batch)
+        self.log_dict({f'val_loss': loss, **
+                       {f'val_{k}': v for k, v in metrics.items()}})
         self.val_losses.append(loss)
         return loss
-
+    
     def test_step(self, batch, batch_idx):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]

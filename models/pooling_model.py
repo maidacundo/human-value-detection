@@ -4,6 +4,7 @@ from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_
 import torch.nn as nn
 import torchmetrics
 import torch.nn.functional as F
+from sentence_transformers.models import Pooling
 
 class TransformerClassifierPooling(pl.LightningModule):
     def __init__(
@@ -16,7 +17,6 @@ class TransformerClassifierPooling(pl.LightningModule):
             lr_transformer=2e-5, 
             lr_classifier=1e-3, 
             weight_decay=1e-5, 
-            num_lstm_layers=1,
             n_training_steps=None, 
             n_warmup_steps=None
         ):
@@ -26,7 +26,6 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.lr_transformer = lr_transformer
         self.lr_classifier = lr_classifier
         self.weight_decay = weight_decay
-        self.num_lstm_layers = num_lstm_layers
 
         self.num_labels = num_labels
         self.config = AutoConfig.from_pretrained(model_name)
@@ -36,17 +35,10 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = AutoModel.from_pretrained(model_name)
-        self.lstm = nn.LSTM(self.config.hidden_size, self.config.num_labels, batch_first=True, bidirectional=False, dropout=classifier_dropout, num_layers=self.num_lstm_layers)
-        self.avg_pooling = nn.AdaptiveAvgPool1d(1)
-        self.max_pooling = nn.AdaptiveMaxPool1d(1)
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
-
-        # self.pooling_dense = nn.Linear(self.config.num_labels, self.config.num_labels)
-        # self.pooling_activation = nn.Tanh()
         
         self.loss_fn = nn.BCEWithLogitsLoss()
-
         # self.init_weights() # https://pytorch.org/docs/stable/nn.init.html
         self.classifier.weight.data.normal_(mean=0.0, std=self.config.initializer_range)
         if isinstance(self.classifier, nn.Linear) and self.classifier.bias is not None:
@@ -75,7 +67,7 @@ class TransformerClassifierPooling(pl.LightningModule):
         output_attentions=None,
         output_hidden_states=None,
     ):
-
+       
         outputs = self.bert(
             input_ids,
             attention_mask=attention_mask,
@@ -87,32 +79,21 @@ class TransformerClassifierPooling(pl.LightningModule):
             output_hidden_states=output_hidden_states,
         )
 
-        pooled_output = outputs.pooler_output
+        # Perform pooling
+        mean_sentence_embeddings = self.mean_pooling(outputs, attention_mask)
+        max_sentence_embeddings = self.max_pooling(outputs, attention_mask)
 
-        last_hidden_state = outputs.last_hidden_state[:, 1:, :]
-        last_hidden_state = self.dropout(last_hidden_state)
-        lstm_output, _ = self.lstm(last_hidden_state)
-        lstm_output = lstm_output.transpose(1, 2) # Convert from [batch_size, seq_len, hidden_size] to [batch_size, hidden_size, seq_len]
+        # Normalize embeddings
+        mean_sentence_embeddings = F.normalize(mean_sentence_embeddings, p=2, dim=1)
+        max_sentence_embeddings = F.normalize(max_sentence_embeddings, p=2, dim=1)
 
-        avg_pooling = self.avg_pooling(lstm_output)
-        avg_pooling = avg_pooling.view(avg_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
+        sentence_embeddings = mean_sentence_embeddings + max_sentence_embeddings
 
-        max_pooling = self.max_pooling(lstm_output)
-        max_pooling = max_pooling.view(max_pooling.size(0), -1) # Flatten the tensor to [batch_size, hidden_size]
-        
-        pooled_output = self.dropout(pooled_output)
+        pooled_output = self.dropout(sentence_embeddings)
         pooled_output = self.classifier(pooled_output)
 
-        # avg_pooling = self.pooling_dense(avg_pooling)
-        # avg_pooling = self.pooling_activation(avg_pooling)
-        avg_pooling = self.dropout(avg_pooling)
-
-        # max_pooling = self.pooling_dense(max_pooling)
-        # max_pooling = self.pooling_activation(max_pooling)
-        max_pooling = self.dropout(max_pooling)
-
-        logits = pooled_output + max_pooling + avg_pooling
-
+        logits = pooled_output
+        
         outputs = (logits,) + outputs[2:]  # add hidden states and attention if they are here
         loss = 0
         if labels is not None:
@@ -175,7 +156,6 @@ class TransformerClassifierPooling(pl.LightningModule):
 
         optimizer = self.optim([
                                     {"params": self.bert.parameters(), "lr": self.lr_transformer},
-                                    {"params": self.lstm.parameters(), "lr": self.lr_classifier},
                                     {"params": self.classifier.parameters(), "lr": self.lr_classifier},
                                 ],
                                 lr=self.lr_classifier, 
@@ -194,4 +174,16 @@ class TransformerClassifierPooling(pl.LightningModule):
                 interval='step'
             )
         )
-    
+
+    #Mean Pooling - Take attention mask into account for correct averaging
+    def mean_pooling(self, model_output, attention_mask):
+        token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        return torch.sum(token_embeddings * input_mask_expanded, 1) / torch.clamp(input_mask_expanded.sum(1), min=1e-9)
+
+    def max_pooling(self, model_output, attention_mask):
+        token_embeddings = model_output[0] #First element of model_output contains all token embeddings
+        input_mask_expanded = attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
+        token_embeddings[input_mask_expanded == 0] = -1e9
+        max_values, max_indices = torch.max(token_embeddings, 1)
+        return max_values
