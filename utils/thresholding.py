@@ -6,7 +6,7 @@ import torch
 from torchmetrics import Accuracy
 import torch.nn as nn
 
-def print_classification_report_thresholding(true_labels, pred_labels, labels_columns, threshold, num_labels=20):
+def print_classification_report_thresholding(true_labels, pred_labels, labels_columns, threshold, num_labels=20, output_dict=False):
     pred_labels_threshold = np.where(pred_labels > threshold, 1, 0)
 
     class_report = classification_report(
@@ -20,13 +20,16 @@ def print_classification_report_thresholding(true_labels, pred_labels, labels_co
     accuracy_value = accuracy(torch.tensor(pred_labels_threshold), torch.tensor(true_labels)).item()
     print(class_report)
     print(f'accuracy: {accuracy_value}')
-    return classification_report(
-      true_labels, 
-      pred_labels_threshold, 
-      target_names=labels_columns, 
-      zero_division=0,
-      output_dict=True
-    )
+    if output_dict:
+        return classification_report(
+        true_labels, 
+        pred_labels_threshold, 
+        target_names=labels_columns, 
+        zero_division=0,
+        output_dict=True
+        )
+    else:
+        return None
 
 def get_f1_optimized_thresholding(true_labels, pred_labels, labels_columns):
     threshold_list = []
