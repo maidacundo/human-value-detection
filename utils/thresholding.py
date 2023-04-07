@@ -16,11 +16,17 @@ def print_classification_report_thresholding(true_labels, pred_labels, labels_co
       zero_division=0
     )
 
-    accuracy = Accuracy(task="multiclass", num_classes=num_labels)
+    accuracy = Accuracy(task="multilabel", num_labels=num_labels)
     accuracy_value = accuracy(torch.tensor(pred_labels_threshold), torch.tensor(true_labels)).item()
     print(class_report)
     print(f'accuracy: {accuracy_value}')
-    return class_report
+    return classification_report(
+      true_labels, 
+      pred_labels_threshold, 
+      target_names=labels_columns, 
+      zero_division=0,
+      output_dict=True
+    )
 
 def get_f1_optimized_thresholding(true_labels, pred_labels, labels_columns):
     threshold_list = []
