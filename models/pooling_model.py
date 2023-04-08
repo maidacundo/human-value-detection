@@ -82,11 +82,10 @@ class TransformerClassifierPooling(pl.LightningModule):
         mean_sentence_embeddings = self.mean_pooling(outputs, attention_mask)
         max_sentence_embeddings = self.max_pooling(outputs, attention_mask)
 
-        # Normalize embeddings
-        mean_sentence_embeddings = F.normalize(mean_sentence_embeddings, p=2, dim=1)
-        max_sentence_embeddings = F.normalize(max_sentence_embeddings, p=2, dim=1)
-
         sentence_embeddings = mean_sentence_embeddings + max_sentence_embeddings
+
+        # Normalize embeddings
+        mean_sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)        
 
         pooled_output = self.dropout(sentence_embeddings)
         pooled_output = self.classifier(pooled_output)
