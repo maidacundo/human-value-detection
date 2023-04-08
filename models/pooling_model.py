@@ -4,7 +4,6 @@ from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_
 import torch.nn as nn
 import torchmetrics
 import torch.nn.functional as F
-from sentence_transformers.models import Pooling
 
 class TransformerClassifierPooling(pl.LightningModule):
     def __init__(
