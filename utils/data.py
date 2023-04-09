@@ -15,15 +15,6 @@ def get_processed_df(input_df, labels_columns, tokenizer_sep_token):
 
     return df
 
-def get_processed_df2(input_df, labels_columns):
-    df = pd.DataFrame()
-
-    df['arguments'] = input_df['Premise']
-    
-    df['labels'] = input_df[labels_columns].values.tolist()
-
-    return df
-
 def format_batch_texts(language_code, batch_texts):
   
   formated_bach = [">>{}<< {}".format(language_code, text) for text in batch_texts]
