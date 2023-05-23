@@ -170,10 +170,10 @@ class TransformerClassifierPooling(pl.LightningModule):
     def configure_optimizers(self):
 
         optimizer = self.optim([
-                                    {"params": self.bert.parameters(), "lr": self.lr_transformer},
+                                    {"params": self.lora_model.parameters() if self.use_lora else self.bert.parameters(), "lr": self.lr_transformer},
                                     {"params": self.classifier.parameters(), "lr": self.lr_classifier},
                                 ],
-                                lr=self.lr_classifier, 
+                                lr=self.lr_classifier,
                                 weight_decay=self.weight_decay)
 
         scheduler = get_linear_schedule_with_warmup(
