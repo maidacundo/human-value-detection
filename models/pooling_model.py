@@ -1,9 +1,10 @@
 import torch
 import pytorch_lightning as pl
-from transformers import AutoConfig, AutoModel, AdamW, get_linear_schedule_with_warmup
+from transformers import AutoConfig, AutoModel, get_linear_schedule_with_warmup
 import torch.nn as nn
 import torchmetrics
 import torch.nn.functional as F
+from peft import get_peft_model
 
 class TransformerClassifierPooling(pl.LightningModule):
     def __init__(
@@ -17,10 +18,12 @@ class TransformerClassifierPooling(pl.LightningModule):
             lr_classifier=1e-3, 
             weight_decay=1e-5, 
             n_training_steps=None, 
-            n_warmup_steps=None
+            n_warmup_steps=None,
+            use_lora=False,
+            lora_config=None,
         ):
         super().__init__()
-
+        self.use_lora = use_lora
         self.optim = optimizer
         self.lr_transformer = lr_transformer
         self.lr_classifier = lr_classifier
@@ -34,6 +37,9 @@ class TransformerClassifierPooling(pl.LightningModule):
         self.n_warmup_steps = n_warmup_steps
 
         self.bert = AutoModel.from_pretrained(model_name)
+        if self.use_lora:
+            self.lora_config = lora_config
+            self.lora_model = get_peft_model(self.bert, self.lora_config)
         self.dropout = nn.Dropout(classifier_dropout)
         self.classifier = nn.Linear(self.config.hidden_size, self.config.num_labels)
         
@@ -66,17 +72,28 @@ class TransformerClassifierPooling(pl.LightningModule):
         output_attentions=None,
         output_hidden_states=None,
     ):
-       
-        outputs = self.bert(
-            input_ids,
-            attention_mask=attention_mask,
-            token_type_ids=token_type_ids,
-            position_ids=position_ids,
-            head_mask=head_mask,
-            inputs_embeds=inputs_embeds,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-        )
+        if self.use_lora:
+            outputs = self.lora_model(
+                input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                position_ids=position_ids,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+            )
+        else:
+            outputs = self.bert(
+                input_ids,
+                attention_mask=attention_mask,
+                token_type_ids=token_type_ids,
+                position_ids=position_ids,
+                head_mask=head_mask,
+                inputs_embeds=inputs_embeds,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+            )
 
         # Perform pooling
         mean_sentence_embeddings = self.mean_pooling(outputs, attention_mask)
